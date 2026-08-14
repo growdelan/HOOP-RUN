@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createDefensePossession,
   playDefenseCard,
+  previewDefenseCardImpact,
   resolveOpponentShot,
 } from "../../src/core/index.ts";
 import type {
@@ -82,6 +83,41 @@ describe("aktywne posiadanie defensywne", () => {
     expect(result.opponentAdvantage).toBe(0);
     expect(result.shotContest).toBe(-8);
     expect(result.currentAction.id).toBe("pnr-drive");
+  });
+
+  it("publikuje porównywalny liczbowy wpływ odpowiedzi na Screen", () => {
+    const state = createForRoll(0);
+
+    expect(
+      previewDefenseCardImpact(state, "switch", PROTOTYPE_DEFENSE_CARDS),
+    ).toMatchObject({
+      timeCost: 1,
+      nextOpponentAdvantage: 0,
+      shotQualityDelta: -2,
+      turnoverChance: 0,
+    });
+    expect(
+      previewDefenseCardImpact(state, "goUnder", PROTOTYPE_DEFENSE_CARDS),
+    ).toMatchObject({
+      nextOpponentAdvantage: 0,
+      shotQualityDelta: 8,
+    });
+    expect(
+      previewDefenseCardImpact(state, "pressure", PROTOTYPE_DEFENSE_CARDS),
+    ).toMatchObject({
+      timeCost: 3,
+      nextOpponentAdvantage: 1,
+      shotQualityDelta: 5,
+      turnoverChance: 0,
+    });
+    expect(
+      previewDefenseCardImpact(state, "doubleTeam", PROTOTYPE_DEFENSE_CARDS),
+    ).toMatchObject({
+      nextOpponentAdvantage: 0,
+      shotQualityDelta: -1,
+      turnoverChance: 0.3,
+      exposureId: "opponent-c",
+    });
   });
 
   it("Help Defense ogranicza Drive i jawnie odsłania partnera", () => {

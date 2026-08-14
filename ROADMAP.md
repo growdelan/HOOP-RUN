@@ -170,7 +170,7 @@ Gracz potrafi płynnie przełączać się między atakiem i obroną, rozumie wp�
 - Ryzyko: długi playtest spowalnia iterację; automatyczne scenariusze mogą używać kontrolowanych seedów, ale kryterium grywalności wymaga pełnego meczu.
 - Ryzyko: istniejąca scena zakłada jedną sesję posiadania; integracja nie może przenieść reguł meczu do Phasera.
 
-## Milestone 7: Walidacja hipotezy pełnego meczu (`blocked`)
+## Milestone 7: Walidacja hipotezy pełnego meczu (`in_progress`)
 
 ### Cel
 

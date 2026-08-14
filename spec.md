@@ -138,7 +138,7 @@ Każda zmiana `Advantage` generuje zdarzenie zawierające źródło i wartość 
 - otwartej albo krytej pozycji,
 - sposobu otrzymania piłki, jeśli wynika z sekwencji.
 
-Silnik przechowuje wartość liczbową potrzebną do deterministycznego rozstrzygnięcia. Interfejs pierwszego prototypu pokazuje kategorię `Bad`, `Contested`, `Decent`, `Open` albo `Perfect` oraz listę przyczyn; dokładny procent nie jest wymagany. Progi kategorii są danymi konfiguracyjnymi.
+Silnik przechowuje wartość liczbową potrzebną do deterministycznego rozstrzygnięcia. Interfejs prototypu pokazuje kategorię `Bad`, `Contested`, `Decent`, `Open` albo `Perfect`, dokładny procent trafienia oraz listę przyczyn. Progi kategorii są danymi konfiguracyjnymi.
 
 ### Obrona
 
@@ -283,6 +283,8 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 - Posiadacz piłki, aktywny wykonujący, legalne cele i intencja obrony mają tekstowy albo ikoniczny odpowiednik.
 - Nielegalna karta pokazuje konkretny powód bez zmiany stanu.
 - Zdarzenia `Advantage`, reakcji obrony i jakości rzutu są przedstawiane krótkimi komunikatami przyczynowymi.
+- Przed wyborem karta pokazuje przewidywany efekt liczbowy dla aktualnego stanu: zmianę `Advantage`, wpływ na szansę rzutu w punktach procentowych, szansę straty i warunkowe odsłonięcie zawodnika, jeśli dotyczą danej akcji.
+- Karta `Shot` pokazuje aktualną szansę trafienia, kategorię jakości i wartość punktową; interfejs wyjaśnia, że liczba jakości jest procentem trafienia, a `Advantage +1` daje `+6 pp`.
 - Podsumowanie posiadania zatrzymuje przepływ, pokazuje zmianę wyniku i następną rolę przed udostępnieniem `Dalej`.
 - Podstawowe sterowanie działa myszą; pełna obsługa klawiatury pozostaje poza PRD 001, chyba że wynika bezpośrednio ze standardowych elementów HTML.
 
@@ -303,11 +305,11 @@ Poniższe pytania balansowe nie blokują rozpoczęcia Milestone 4, o ile impleme
 - TODO przed ukończeniem Milestone 4: dobrać rozmiary talii i liczbę kopii oraz zdefiniować test, że ręka nie pozostawia gracza bez legalnej decyzji.
 - Przyjęto do playtestu prototypową macierz efektów pięciu mechanik defensywnych; wartości pozostają balansem w danych.
 - Przyjęto plany `Pick & Roll`, `Drive & Kick`, `Quick Three` oraz trzy intencje defensywne pierwszego przeciwnika.
-- TODO przed ukończeniem Milestone 6: zdecydować, czy obrona pokazuje tylko kierunek zmiany jakości, czy także przewidywaną kategorię.
+- Przyjęto po pierwszym pełnym playteście: karty pokazują dokładny przewidywany efekt liczbowy dla bieżącego stanu, a `Shot` także aktualną kategorię i procent trafienia.
 - TODO przed ukończeniem Milestone 7: wybrać statystyki podsumowania i referencyjne seedy wygranej, porażki, wyrównanej końcówki oraz wszystkich planów.
 - TODO przed ukończeniem Milestone 7: zweryfikować, czy i jak aktualny wynik wpływa na wybór planu AI; AI nie może otrzymać ukrytej wiedzy ani bonusu.
 - TODO po playteście stref: zatwierdzić albo zmienić topologię boiska.
-- TODO po playteście informacji o rzucie: zdecydować, czy finalnie pokazywać kategorię, procent czy oba.
+- Przyjęto dla prototypu: informacja o rzucie pokazuje jednocześnie kategorię i procent; dalsze uproszczenie zależy od testu nowego gracza.
 - TODO przed runem: ustalić relację kapitana, trenera, archetypu drużyny i draftu zawodników.
 - TODO przed zbiórkami: ustalić granicę posiadania oraz przejście do `Transition`.
 - TODO przed metaprogresją: zdefiniować odblokowania bez trwałej przewagi statystycznej.

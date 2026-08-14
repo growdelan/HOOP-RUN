@@ -179,6 +179,8 @@ Wybór planu i wszelkie dozwolone rozgałęzienia są deterministyczne. Wpływ a
 
 - wynik, cel, rolę, numer posiadania i zegar,
 - stan planszy, rękę właściwej talii, legalnych wykonawców i cele,
+- przewidywany liczbowy efekt każdej karty dla aktualnego stanu oraz konkretny powód blokady,
+- aktualną szansę trafienia, kategorię i wartość punktową na karcie `Shot` oraz krótką legendę przeliczenia jakości,
 - intencję obrony podczas ataku,
 - plan i aktualną akcję przeciwnika podczas obrony,
 - przyczynowe komunikaty po akcji,
@@ -202,7 +204,7 @@ Bramka PRD 001 może otrzymać wynik `proceed`, `iterate` albo `rethink`. System
 
 - Gwarancja użytecznej ręki dla przyjętych prototypowych talii 10-kartowych.
 - Balans przyjętych kosztów i macierzy skutków kart defensywnych po pełnym playteście.
-- Zakres informacji predykcyjnej pokazywanej przed odpowiedzią defensywną.
+- Czy zakres przyjętej informacji predykcyjnej wymaga uproszczenia po teście nowego gracza.
 - Wpływ wyniku na wybór planu AI.
 - Zestaw statystyk podsumowania i referencyjnych seedów walidacyjnych.
 - Przydatność obecnej topologii czterech stref w pełnym meczu.

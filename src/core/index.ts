@@ -4,6 +4,7 @@ export {
   createDefensePossession,
   getLegalDefenseTargets,
   playDefenseCard,
+  previewDefenseCardImpact,
   resolveOpponentShot,
 } from "./defense.ts";
 export type * from "./match.ts";
@@ -16,6 +17,7 @@ export {
 } from "./match.ts";
 export {
   createPossession,
+  calculateShotQuality,
   playCard,
   resetPossession,
   resolveShot,

@@ -24,6 +24,7 @@ Vite pokaże lokalny adres serwera. Gra jest budowana z bazą `/HOOP-RUN/`, zgod
 ### Sterowanie prototypem
 
 1. Kliknij kartę oznaczoną jako `DOSTĘPNA`.
+   Karta pokazuje koszt czasu i przewidywany efekt dla bieżącego stanu; `PP` oznacza punkty procentowe szansy trafienia.
 2. Kliknij zawodnika z zielonym obramowaniem, aby wskazać wykonawcę.
 3. Dla kart wymagających celu kliknij zawodnika z żółtym obramowaniem.
 4. W obronie kliknij kartę odpowiedzi, a następnie zawodnika z żółtym obramowaniem.

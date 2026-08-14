@@ -167,6 +167,15 @@ export interface PlayDefenseCardCommand {
   readonly targetId: PlayerId;
 }
 
+export interface DefenseCardImpact {
+  readonly timeCost: number;
+  readonly nextOpponentAdvantage: number;
+  readonly shotQualityDelta: number;
+  readonly turnoverPressure: number;
+  readonly turnoverChance: number;
+  readonly exposureId?: PlayerId;
+}
+
 export type DefenseRejectionCode =
   | "invalidPhase"
   | "unknownCard"
@@ -267,15 +276,20 @@ export function playDefenseCard(
     return reject(state, "unknownPlan", "Nie znaleziono aktywnego planu przeciwnika.");
   }
 
-  const totalTimeCost = card.timeCost + interaction.extraClockCost;
+  const impact = previewDefenseCardImpact(state, card.id, cards);
+  if (impact === undefined) {
+    return reject(
+      state,
+      "cardNotLegalAgainstAction",
+      "Ta karta nie ma policzalnego efektu dla aktualnej akcji.",
+    );
+  }
+
+  const totalTimeCost = impact.timeCost;
   const shotClock = Math.max(0, state.shotClock - totalTimeCost);
-  const opponentAdvantage = clampAdvantage(
-    state.opponentAdvantage +
-      state.currentAction.baseAdvantageDelta +
-      interaction.advantageDelta,
-  );
+  const opponentAdvantage = impact.nextOpponentAdvantage;
   const targetId = expectedTarget(state, card.targetMode);
-  const exposureId = exposureTarget(state.currentAction, interaction.exposure);
+  const exposureId = impact.exposureId;
   const assignments =
     interaction.assignmentChange === "switchScreenAssignments"
       ? switchScreenAssignments(state.assignments, state.currentAction)
@@ -284,7 +298,7 @@ export function playDefenseCard(
     exposureId === undefined
       ? [...state.exposedOpponentIds]
       : addUnique(state.exposedOpponentIds, exposureId);
-  const turnoverPressure = Math.max(0, interaction.turnoverPressureDelta);
+  const turnoverPressure = impact.turnoverPressure;
   const cardEvent: DefenseDomainEvent = {
     type: "defenseCardPlayed",
     cardId: card.id,
@@ -351,8 +365,7 @@ export function playDefenseCard(
   let resolvedState = commonState;
   if (turnoverPressure >= 2) {
     const turnoverStep = randomSource.next(resolvedState.rngState);
-    const turnoverChance = Math.min(0.6, turnoverPressure * 0.15);
-    if (turnoverStep.value < turnoverChance) {
+    if (turnoverStep.value < impact.turnoverChance) {
       const turnoverEvent: DefenseDomainEvent = {
         type: "turnoverForced",
         roll: turnoverStep.value,
@@ -426,6 +439,39 @@ export function getLegalDefenseTargets(
     return [];
   }
   return [expectedTarget(state, card.targetMode)];
+}
+
+export function previewDefenseCardImpact(
+  state: DefensePossessionState,
+  cardId: CardId,
+  cards: DefenseCardCatalog,
+): DefenseCardImpact | undefined {
+  const card = cards[cardId];
+  const interaction = card?.effects[state.currentAction.kind];
+  if (card === undefined || interaction === undefined) return undefined;
+
+  const nextOpponentAdvantage = clampAdvantage(
+    state.opponentAdvantage +
+      state.currentAction.baseAdvantageDelta +
+      interaction.advantageDelta,
+  );
+  const turnoverPressure = Math.max(0, interaction.turnoverPressureDelta);
+  const exposureId = exposureTarget(state.currentAction, interaction.exposure);
+
+  return {
+    timeCost: card.timeCost + interaction.extraClockCost,
+    nextOpponentAdvantage,
+    shotQualityDelta:
+      (nextOpponentAdvantage - state.opponentAdvantage) *
+        state.shotQualityRules.advantageBonusPerPoint -
+      interaction.contestDelta,
+    turnoverPressure,
+    turnoverChance:
+      turnoverPressure >= 2
+        ? Math.min(0.6, turnoverPressure * 0.15)
+        : 0,
+    ...(exposureId === undefined ? {} : { exposureId }),
+  };
 }
 
 export function resolveOpponentShot(

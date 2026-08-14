@@ -5,7 +5,7 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 ## Aktualny zakres
 
 - Milestone: `Milestone 7: Walidacja hipotezy pełnego meczu`.
-- Status: `blocked`; lokalna część Milestone 7 jest ukończona, lecz bramka wymaga testu nowego gracza i publikacji aktualnego buildu.
+- Status: `in_progress`; po pierwszym ręcznym meczu wdrożono lokalnie liczbową prognozę skutków kart, ale poprawka wymaga jeszcze powtórnego pełnego meczu i testu nowego gracza.
 - Bramka PRD 000: `proceed` na podstawie wewnętrznego playtestu.
 - Aktywny zakres: `prd/001-full-match.md`, realizowany kolejno przez Milestone'y 4–7.
 - Poza aktywnym zakresem: zbiórki, kontry, faule, wielu przeciwników, finalna oprawa, run, metaprogresja i zapis postępu.
@@ -38,8 +38,8 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 
 ## Co jest następne
 
-- Przeprowadzić scenariusz z `docs/validation/prd-001-validation.md` z osobą nieznającą projektu i zapisać czas oraz obserwacje.
-- Po autoryzowanym commitcie i pushu sprawdzić aktualny build na GitHub Pages, a po teście nowego gracza wybrać bramkę `proceed`, `iterate` albo `rethink`.
+- Powtórzyć pełny ręczny mecz, a następnie przeprowadzić scenariusz z `docs/validation/prd-001-validation.md` z osobą nieznającą projektu.
+- Po testach wybrać ostateczną bramkę `proceed`, `iterate` albo `rethink`; aktualny wynik jest provisional `iterate`.
 - Nie projektować mapy runu ani metaprogresji przed bramką Milestone 7. Commit i push nadal wymagają jawnego polecenia.
 
 ## Ostatnia walidacja
@@ -63,13 +63,16 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 | 2026-08-14 | Milestone 5 | `./scripts/verify.sh`, read-only review i ponowne review | zaliczona | 55 testów Vitest, build i Playwright E2E przeszły; poprawiono spójność planu `Drive & Kick` i dodano trzy intencje obronne. Playtest niewymagany. |
 | 2026-08-14 | Milestone 6 | `./scripts/verify.sh`, `$codex-flow-playtest`, read-only review | zaliczona | 63 testy Vitest, build i E2E przeszły. Dwa pełne mecze (seedy 42 i 43) zakończyły się 8:11 po 18 i 24 posiadaniach; sprawdzono obie role, różne ręce, trzy plany, podsumowania i rewanż. Konsola bez ostrzeżeń i błędów; canvas mieści się w kontenerze 1280×720 oraz 1024×768. |
 | 2026-08-14 | Milestone 7 — zakres lokalny | `./scripts/verify.sh`, końcowe read-only review | zaliczona | 63 testy Vitest, build i 4 testy Playwright przeszły w 2,7 min. E2E obejmuje pełne zwycięstwo, porażkę, rewanż i zwycięstwo 1024×768; brak problemów blokujących w kodzie. Bramka pozostaje zablokowana na dowodach zewnętrznych. |
+| 2026-08-14 | GitHub Pages, commit `7ae3ce2` | GitHub Actions i `$codex-flow-playtest`, seed 42, 1280×720 i 1024×768 | zaliczona | Workflow `Verify and deploy GitHub Pages` zakończył się sukcesem. Publiczna wersja pokazuje pełny mecz; `Shot → Nova` dał `PUDŁO: Contested (36)` i podsumowanie ze zmianą roli na obronę. HTML, JS i CSS zwracają 200, konsola jest czysta, bez poziomego overflow. |
+| 2026-08-14 | Pierwszy ręczny pełny mecz, publiczny build `7ae3ce2`, seed 42 | playtest właściciela projektu | częściowo zaliczona: provisional `iterate` | Mecz ukończono w około 10 minut z porażką 2:11. Przepływ działa, ale brak wyjaśnień skutków kart wymuszał częściowo ślepe wybory; z tego powodu nie było chęci rewanżu. |
+| 2026-08-14 | Iteracja czytelności kart | `./scripts/verify.sh`, `$codex-flow-playtest`, seedy 7 i 42, 1280×720 oraz 1024×768 | zaliczona lokalnie | 65 testów Vitest, build i 4 E2E przeszły. Karty pokazują prognozę liczbową; scenariusz `Screen` pozwala porównać `Double Team`, `Go Under` i `Pressure` przed wyborem. |
 
 ## Blokery i ryzyka
 
-- Milestone 7 jest zablokowany przez obowiązkowy test osoby wcześniej nieznającej projektu: bez niego nie da się rzetelnie ocenić czasu 8–12 minut, wpływu wyniku i chęci rewanżu.
-- Weryfikacja aktualnego buildu na GitHub Pages pozostaje oczekującym krokiem po pushu i zakończeniu workflow wdrożeniowego.
+- Liczbowe prognozy rozwiązują wykryty brak informacji funkcjonalnie, ale ich zrozumiałość i wpływ na chęć rewanżu pozostają do potwierdzenia w pełnym ręcznym meczu.
+- Nadal wymagany jest test osoby wcześniej nieznającej projektu; pierwszy ręczny mecz właściciela nie zastępuje tego dowodu.
 - Startowe talie prototypu mają po 10 kart, po dwie kopie każdej z pięciu mechanik; wartości pozostają danymi balansowymi.
-- Prototypowa macierz efektów kart i trzy plany są przyjęte do playtestu; zakres informacji predykcyjnej pozostaje decyzją UI Milestone 6.
+- Prototypowa macierz efektów kart i trzy plany są przyjęte do playtestu; karty pokazują bieżący efekt liczbowy bez zmiany balansu.
 - Produkcyjny bundle zawierający Phaser ma około 1,38 MB przed kompresją i 359 KB gzip; Vite zgłasza ostrzeżenie rozmiaru. Optymalizować dopiero na podstawie pomiaru, nie przed pierwszym gameplayem.
 - `actions/configure-pages@v5` zgłasza nieblokującą adnotację o wewnętrznym przejściu z Node.js 20 na Node.js 24; workflow i deployment przechodzą.
 - Przed bramką PRD 001 wymagany jest co najmniej jeden pełny test z osobą nieznającą projektu.
@@ -79,4 +82,4 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 - Najkrótsze streszczenie: PRD 000 oraz milestone'y 4–6 PRD 001 są ukończone; grywalny pełny mecz działa lokalnie, a Milestone 7 zbiera automatyczne i jakościowe dowody do bramki.
 - Decyzje, których nie wolno zgubić: do 11, przewaga 2, limit 15; punktacja 1/2; ścisła naprzemienność; osobne utrzymujące stan talie; `Dalej` po każdym posiadaniu; jeden kanoniczny RNG; Phaser tylko prezentuje model widoku.
 - Pliki do przeczytania jako pierwsze: `STATUS.md`, Milestone 7 w `ROADMAP.md`, `docs/spec/full-match.md` i `prd/001-full-match.md`.
-- Następny bezpieczny krok: wykonać test nowego gracza według `docs/validation/prd-001-validation.md`; nie projektować runu przed rozstrzygnięciem bramki.
+- Następny bezpieczny krok: powtórny pełny mecz z liczbowymi prognozami, następnie test nowego gracza i decyzja bramki PRD 001.

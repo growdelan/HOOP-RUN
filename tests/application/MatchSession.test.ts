@@ -13,7 +13,31 @@ describe("MatchSession", () => {
     expect(view.targetLabel).toBe("DO 11 · +2 · LIMIT 15");
     expect(view.contextTitle).toBe("DEFENSE INTENT");
     expect(view.cards.find((card) => card.id === "shot")?.count).toBeGreaterThan(0);
+    expect(view.cards.find((card) => card.id === "shot")?.insights).toEqual([
+      "SZANSA TRAFIENIA: 36%",
+      "KATEGORIA: Contested",
+      "WARTOŚĆ: 2 PKT",
+    ]);
+    expect(view.mechanicsHint).toContain("54% TRAFIENIA");
     expect(view.players.find((player) => player.hasBall)?.side).toBe("player");
+  });
+
+  it("wyjaśnia kompromisy dostępnych odpowiedzi na Screen przed wyborem", () => {
+    const screenView = findScreenDefenseView();
+
+    expect(screenView.cards.find((card) => card.id === "doubleTeam")?.insights)
+      .toEqual(expect.arrayContaining([
+        "PRZEWAGA: 0 → 0",
+        "WPŁYW NA RZUT: -1 PP",
+        "SZANSA STRATY: 30%",
+      ]));
+    expect(screenView.cards.find((card) => card.id === "goUnder")?.insights)
+      .toContain("WPŁYW NA RZUT: +8 PP");
+    expect(screenView.cards.find((card) => card.id === "pressure")?.insights)
+      .toEqual(expect.arrayContaining([
+        "PRZEWAGA: 0 → 1",
+        "WPŁYW NA RZUT: +5 PP",
+      ]));
   });
 
   it("prowadzi ofensywne posiadanie do zatrzymanego podsumowania i zmiany roli", () => {
@@ -93,6 +117,24 @@ function runMatch(session: MatchSession): void {
       playDefensePossession(session);
     }
   }
+}
+
+function findScreenDefenseView(): ReturnType<MatchSession["getViewModel"]> {
+  for (let seed = 1; seed <= 100; seed += 1) {
+    const session = new MatchSession(seed);
+    playImmediateShot(session);
+    session.continue();
+    const view = session.getViewModel();
+    if (
+      view.currentAction?.startsWith("Screen") &&
+      ["doubleTeam", "goUnder", "pressure"].every((cardId) =>
+        view.cards.some((card) => card.id === cardId),
+      )
+    ) {
+      return view;
+    }
+  }
+  throw new Error("Nie znaleziono kontrolowanego widoku Screen z trzema kartami.");
 }
 
 function playImmediateShot(session: MatchSession): void {

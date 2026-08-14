@@ -258,6 +258,10 @@ export class PossessionScene extends Phaser.Scene {
       `${view.advantage} / 3`,
       textStyle(view.role === "offense" ? "#4ade80" : "#f87171", "16px", true),
     );
+    this.add.text(868, 474, view.mechanicsHint, {
+      ...textStyle("#fbbf24", "8px", true),
+      wordWrap: { width: 344 },
+    });
   }
 
   private drawPossessionSummary(view: MatchViewModel): void {
@@ -330,9 +334,13 @@ export class PossessionScene extends Phaser.Scene {
       `${view.roleLabel} — RĘKA (KLIKNIJ KARTĘ${view.role === "offense" ? ", WYKONAWCĘ I CEL" : " I CEL"})`,
       textStyle("#94a3b8", "10px", true),
     ).setLetterSpacing(1);
-    const spacing = WIDTH / Math.max(5, view.cards.length);
+    const cardWidth = 232;
+    const spacing =
+      view.cards.length <= 1
+        ? 0
+        : (WIDTH - 60 - cardWidth) / (view.cards.length - 1);
     view.cards.forEach((card, index) => {
-      this.drawCard(card, 30 + index * spacing, 528, Math.min(232, spacing - 12));
+      this.drawCard(card, 30 + index * spacing, 528, cardWidth);
     });
   }
 
@@ -356,10 +364,11 @@ export class PossessionScene extends Phaser.Scene {
     });
     this.add.text(x + width - 10, y + 11, `${card.timeCost}s`, textStyle("#f59e0b", "13px", true))
       .setOrigin(1, 0);
-    this.add.text(x + 12, y + 43, card.description, {
-      ...textStyle("#a9b7ca", "10px"),
-      lineSpacing: 2,
-      wordWrap: { width: width - 24 },
+    card.insights.slice(0, 4).forEach((insight, index) => {
+      this.add.text(x + 12, y + 42 + index * 18, insight, {
+        ...textStyle(index === 0 ? "#f8fafc" : "#cbd5e1", "9px", index === 0),
+        wordWrap: { width: width - 24 },
+      });
     });
     this.add.text(x + 12, y + 116, `${palette.text} · ×${card.count}`, {
       ...textStyle(`#${palette.stroke.toString(16).padStart(6, "0")}`, "9px", true),

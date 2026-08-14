@@ -420,7 +420,7 @@ function finishCard(
   return accept(commonState, actionEvents);
 }
 
-function calculateShotQuality(
+export function calculateShotQuality(
   state: PossessionState,
   shooter: PlayerState,
 ): ShotQuality {

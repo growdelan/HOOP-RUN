@@ -246,8 +246,11 @@ async function clickCard(page: Page, cardId: string): Promise<void> {
   const view = await snapshot(page);
   const index = view.cards.findIndex((card) => card.id === cardId);
   if (index < 0) throw new Error(`Nie znaleziono karty ${cardId}.`);
-  const spacing = GAME_WIDTH / Math.max(5, view.cards.length);
-  const width = Math.min(232, spacing - 12);
+  const width = 232;
+  const spacing =
+    view.cards.length <= 1
+      ? 0
+      : (GAME_WIDTH - 60 - width) / (view.cards.length - 1);
   await clickGame(page, 30 + index * spacing + width / 2, 606);
 }
 

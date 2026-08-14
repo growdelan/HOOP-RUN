@@ -16,11 +16,13 @@ import {
 } from "../content/prototypePossession.ts";
 import {
   advanceMatch,
+  calculateShotQuality,
   completeMatchPossession,
   createDefensePossession,
   createMatch,
   getLegalDefenseTargets,
   playDefenseCard,
+  previewDefenseCardImpact,
   resetMatch,
   resolveOpponentShot,
   xorshift32RandomSource,
@@ -35,6 +37,7 @@ import type {
   MatchState,
   PlayerId,
   PlayerMatchRole,
+  PossessionState,
   ShotModifier,
   TeamMatchStats,
   Zone,
@@ -59,6 +62,7 @@ export interface MatchCardView {
   readonly count: number;
   readonly status: "available" | "blocked" | "selected" | "played";
   readonly description: string;
+  readonly insights: readonly string[];
   readonly risk?: string;
   readonly reason?: string;
 }
@@ -94,6 +98,7 @@ export interface MatchViewModel {
   readonly currentAction?: string;
   readonly prompt: string;
   readonly feedback: string;
+  readonly mechanicsHint: string;
   readonly assignments: readonly DefenseAssignment[];
   readonly players: readonly MatchPlayerView[];
   readonly cards: readonly MatchCardView[];
@@ -149,6 +154,7 @@ export class MatchSession {
         : { currentAction: activeView.currentAction }),
       prompt: activeView.prompt,
       feedback: activeView.feedback,
+      mechanicsHint: `JAKOŚĆ 54 = 54% TRAFIENIA · ADV +1 = +${PROTOTYPE_SETUP.rules.shotQuality.advantageBonusPerPoint} PP`,
       assignments: activeView.assignments,
       players: activeView.players,
       cards: activeView.cards,
@@ -388,7 +394,7 @@ export class MatchSession {
         ...player,
         side: player.side === "offense" ? "player" : "opponent",
       })),
-      cards: groupOffenseCards(view.cards, session.state.hand),
+      cards: groupOffenseCards(view.cards, session.state),
     };
   }
 
@@ -496,7 +502,7 @@ interface ActiveView {
 
 function groupOffenseCards(
   cards: readonly CardView[],
-  remainingHand: readonly CardId[],
+  state: PossessionState,
 ): readonly MatchCardView[] {
   const uniqueCards = uniqueById(cards);
   return uniqueCards.map((card) => ({
@@ -504,9 +510,13 @@ function groupOffenseCards(
     name: card.name,
     kind: card.kind,
     timeCost: card.timeCost,
-    count: countCard(remainingHand, card.id),
-    status: countCard(remainingHand, card.id) === 0 ? "played" : card.status,
+    count: countCard(state.hand, card.id),
+    status: countCard(state.hand, card.id) === 0 ? "played" : card.status,
     description: offenseCardDescription(card.kind),
+    insights:
+      card.reason === undefined
+        ? offenseCardInsights(card.kind, state)
+        : [`BLOKADA: ${card.reason}`],
     ...(card.reason === undefined ? {} : { reason: card.reason }),
   }));
 }
@@ -521,6 +531,7 @@ function groupDefenseCards(
     if (card === undefined) throw new Error(`Brak definicji karty ${cardId}.`);
     const count = countCard(state.hand, cardId);
     const effect = card.effects[state.currentAction.kind];
+    const impact = previewDefenseCardImpact(state, cardId, defenseCards);
     const legal = getLegalDefenseTargets(
       state,
       cardId,
@@ -541,6 +552,10 @@ function groupDefenseCards(
               ? "available"
               : "blocked",
       description: effect?.explanation ?? "Brak zastosowania przeciw tej akcji.",
+      insights:
+        impact === undefined
+          ? [`BRAK EFEKTU: nie odpowiada na ${state.currentAction.name}.`]
+          : defenseCardInsights(state, impact),
       risk: card.risk,
       ...(legal ? {} : { reason: "Nie odpowiada na aktualną akcję." }),
     };
@@ -572,6 +587,89 @@ function offenseCardDescription(kind: CardView["kind"]): string {
     kickOut: "Odegraj z paint na obwód.",
     shot: "Oddaj rzut i zakończ posiadanie.",
   }[kind];
+}
+
+function offenseCardInsights(
+  kind: CardView["kind"],
+  state: PossessionState,
+): readonly string[] {
+  const rules = state.rules.shotQuality;
+  const ballHandler = state.players.find(
+    (player) => player.id === state.ballHandlerId,
+  );
+  if (ballHandler === undefined) return ["Brak posiadacza piłki."];
+
+  if (kind === "pass") {
+    return ["PIŁKA: wybierz innego zawodnika", "PREMIA: brak — zmieniasz strzelca"];
+  }
+  if (kind === "screen") {
+    const nextAdvantage = Math.min(rules.maxAdvantage, state.advantage + 2);
+    return [
+      `PRZYGOTUJE DRIVE: ADV ${state.advantage} → ${nextAdvantage}`,
+      `POTENCJAŁ RZUTU: +${(nextAdvantage - state.advantage) * rules.advantageBonusPerPoint} PP`,
+    ];
+  }
+  if (kind === "drive") {
+    const beatsPressure = state.screenedPlayerIds.includes(ballHandler.id);
+    const nextAdvantage = beatsPressure
+      ? Math.min(rules.maxAdvantage, state.advantage + 2)
+      : Math.max(0, state.advantage - 1);
+    const zoneDelta =
+      rules.zoneModifiers.paint - rules.zoneModifiers[ballHandler.zone];
+    const qualityDelta =
+      (nextAdvantage - state.advantage) * rules.advantageBonusPerPoint +
+      zoneDelta;
+    return [
+      `PRZEWAGA: ${state.advantage} → ${nextAdvantage}`,
+      `WPŁYW NA RZUT: ${signed(qualityDelta)} PP`,
+      state.defense.intent.helpOnDrive
+        ? "OBRONA: pomoc otworzy Kick Out"
+        : "OBRONA: bez automatycznej pomocy",
+    ];
+  }
+  if (kind === "kickOut") {
+    const createsOpenLook = state.defense.helpCommitted;
+    const nextAdvantage = createsOpenLook
+      ? Math.min(rules.maxAdvantage, state.advantage + 1)
+      : state.advantage;
+    return [
+      `PRZEWAGA: ${state.advantage} → ${nextAdvantage}`,
+      createsOpenLook
+        ? `OTWARTY RZUT: +${rules.openLookBonus} PP`
+        : "OTWARTY RZUT: brak — obrona nie pomogła",
+      "CEL: partner na obwodzie · rzut za 2",
+    ];
+  }
+
+  const quality = calculateShotQuality(state, ballHandler);
+  return [
+    `SZANSA TRAFIENIA: ${quality.totalScore}%`,
+    `KATEGORIA: ${quality.category}`,
+    `WARTOŚĆ: ${ballHandler.zone === "paint" ? 1 : 2} PKT`,
+  ];
+}
+
+function defenseCardInsights(
+  state: DefensePossessionState,
+  impact: NonNullable<ReturnType<typeof previewDefenseCardImpact>>,
+): readonly string[] {
+  const insights = [
+    `PRZEWAGA: ${state.opponentAdvantage} → ${impact.nextOpponentAdvantage}`,
+    `WPŁYW NA RZUT: ${signed(impact.shotQualityDelta)} PP`,
+  ];
+  if (impact.turnoverChance > 0) {
+    insights.push(`SZANSA STRATY: ${Math.round(impact.turnoverChance * 100)}%`);
+  }
+  if (impact.exposureId !== undefined) {
+    insights.push(
+      `RYZYKO: odsłania ${playerName(state, impact.exposureId)} (+${state.shotQualityRules.openLookBonus} PP, jeśli rzuca)`,
+    );
+  }
+  return insights;
+}
+
+function signed(value: number): string {
+  return value >= 0 ? `+${value}` : `${value}`;
 }
 
 function formatDefenseEvents(events: readonly DefenseDomainEvent[]): string {
