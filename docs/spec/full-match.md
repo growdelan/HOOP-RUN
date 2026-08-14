@@ -181,6 +181,7 @@ Wybór planu i wszelkie dozwolone rozgałęzienia są deterministyczne. Wpływ a
 
 - wynik, cel, rolę, numer posiadania i zegar,
 - stan planszy, rękę właściwej talii, legalnych wykonawców i cele,
+- relację aktualnej zasłony: wykonującego i zawodnika korzystającego z `Screen`,
 - przewidywany liczbowy efekt każdej karty dla aktualnego stanu oraz konkretny powód blokady,
 - aktualną szansę trafienia, kategorię i wartość punktową na karcie `Shot` oraz krótką legendę przeliczenia jakości,
 - intencję obrony podczas ataku,
@@ -189,7 +190,7 @@ Wybór planu i wszelkie dozwolone rozgałęzienia są deterministyczne. Wpływ a
 - dane podsumowania posiadania albo meczu,
 - dostępność `Dalej`, rewanżu i nowego meczu.
 
-Phaser renderuje ten model i wysyła komendy. Nie oblicza punktów, legalności, odpowiedzi AI, przejść faz ani kolejności talii. Most E2E pozostaje tylko do odczytu i nie może wstrzykiwać rezultatu meczu.
+Phaser renderuje ten model i wysyła komendy. Po `Screen` przesuwa token zasłaniającego obok celu i oznacza relację, a po kolejnej akcji wraca do pozycji wynikającej ze strefy; ruch nie zmienia reguł domenowych. Phaser nie oblicza punktów, legalności, odpowiedzi AI, przejść faz ani kolejności talii. Most E2E pozostaje tylko do odczytu i nie może wstrzykiwać rezultatu meczu.
 
 ## Walidacja i śledzenie wymagań
 

@@ -52,6 +52,7 @@ export interface MatchPlayerView {
   readonly zone: Zone;
   readonly hasBall: boolean;
   readonly interaction: PlayerInteraction;
+  readonly screenTargetId?: PlayerId;
 }
 
 export interface MatchCardView {
@@ -429,6 +430,10 @@ export class MatchSession {
         zone: player.zone,
         hasBall: player.id === state.ballHandlerId,
         interaction: selectedTargets.includes(player.id) ? "legalTarget" : "none",
+        ...(state.currentAction.kind === "screen" &&
+        state.currentAction.actorId === player.id
+          ? { screenTargetId: state.currentAction.targetId }
+          : {}),
       })),
       cards: groupDefenseCards(
         state,

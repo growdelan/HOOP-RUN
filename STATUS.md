@@ -66,6 +66,7 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 | 2026-08-14 | GitHub Pages, commit `7ae3ce2` | GitHub Actions i `$codex-flow-playtest`, seed 42, 1280×720 i 1024×768 | zaliczona | Workflow `Verify and deploy GitHub Pages` zakończył się sukcesem. Publiczna wersja pokazuje pełny mecz; `Shot → Nova` dał `PUDŁO: Contested (36)` i podsumowanie ze zmianą roli na obronę. HTML, JS i CSS zwracają 200, konsola jest czysta, bez poziomego overflow. |
 | 2026-08-14 | Pierwszy ręczny pełny mecz, publiczny build `7ae3ce2`, seed 42 | playtest właściciela projektu | częściowo zaliczona: provisional `iterate` | Mecz ukończono w około 10 minut z porażką 2:11. Przepływ działa, ale brak wyjaśnień skutków kart wymuszał częściowo ślepe wybory; z tego powodu nie było chęci rewanżu. |
 | 2026-08-14 | Iteracja czytelności, wynik `0:11` i korekta balansu | `./scripts/verify.sh`, audyt 100 seedów, playtest seeda 42 w 1280×720 i 1024×768 | gotowa do retestu | 68 testów i 4 E2E przeszły. Strategia kontekstowa wygrała 82/100 seedów; seed 42 `12:6`. `Screen → Drive` bez pomocy daje 80%, `Switch` `-5 pp`, konsola czysta. |
+| 2026-08-14 | Wizualizacja zasłony | `./scripts/verify.sh` i `$codex-flow-playtest`, seed 42, 1280×720 i 1024×768 | zaliczona | 68 testów i 4 E2E przeszły. Zasłaniający podchodzi do celu, pozostaje na pierwszym planie i ma etykietę `ZASŁONA`; `Drive` przenosi kozłującego do paint. Brak błędów konsoli i overflow. |
 
 ## Blokery i ryzyka
 

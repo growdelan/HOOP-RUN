@@ -35,6 +35,25 @@ describe("PossessionSession", () => {
     expect(session.getViewModel().feedback).toContain(
       "Drive może teraz pokonać presję",
     );
+    expect(
+      session
+        .getViewModel()
+        .players.find((player) => player.id === "offense-c")?.screenTargetId,
+    ).toBe("offense-pg");
+
+    session.selectCard("drive");
+    session.selectPlayer("offense-pg");
+
+    expect(
+      session
+        .getViewModel()
+        .players.find((player) => player.id === "offense-c")?.screenTargetId,
+    ).toBeUndefined();
+    expect(
+      session
+        .getViewModel()
+        .players.find((player) => player.id === "offense-pg")?.zone,
+    ).toBe("paint");
   });
 
   it("pokazuje konkretny powód niedostępnej karty bez zmiany stanu", () => {

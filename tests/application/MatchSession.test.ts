@@ -25,6 +25,12 @@ describe("MatchSession", () => {
   it("wyjaśnia kompromisy dostępnych odpowiedzi na Screen przed wyborem", () => {
     const screenView = findScreenDefenseView();
 
+    const currentActionActor = screenView.currentAction?.split(" · ")[1];
+    const screener = screenView.players.find(
+      (player) => player.name === currentActionActor,
+    );
+    expect(screener?.screenTargetId).toBeDefined();
+
     expect(screenView.cards.find((card) => card.id === "doubleTeam")?.insights)
       .toEqual(expect.arrayContaining([
         "PRZEWAGA: 0 → 0",

@@ -129,7 +129,11 @@ export class PossessionScene extends Phaser.Scene {
 
     const positions = this.calculatePlayerPositions(view.players);
     this.drawAssignments(view, positions);
-    for (const player of view.players) {
+    this.drawScreens(view.players, positions);
+    const playersByLayer = [...view.players].sort(
+      (left, right) => Number(left.screenTargetId !== undefined) - Number(right.screenTargetId !== undefined),
+    );
+    for (const player of playersByLayer) {
       const position = positions.get(player.id);
       if (position !== undefined) this.drawPlayer(player, position);
     }
@@ -151,7 +155,50 @@ export class PossessionScene extends Phaser.Scene {
         });
       });
     }
+    for (const player of players) {
+      if (player.screenTargetId === undefined) continue;
+      const target = positions.get(player.screenTargetId);
+      const original = positions.get(player.id);
+      if (target === undefined || original === undefined) continue;
+      const direction = original.x < target.x ? -1 : 1;
+      positions.set(player.id, {
+        x: target.x + direction * 58,
+        y: target.y - 5,
+      });
+    }
     return positions;
+  }
+
+  private drawScreens(
+    players: readonly MatchPlayerView[],
+    positions: ReadonlyMap<PlayerId, Point>,
+  ): void {
+    for (const player of players) {
+      if (player.screenTargetId === undefined) continue;
+      const screener = positions.get(player.id);
+      const target = positions.get(player.screenTargetId);
+      if (screener === undefined || target === undefined) continue;
+      this.add.line(
+        0,
+        0,
+        screener.x,
+        screener.y,
+        target.x,
+        target.y,
+        0xfbbf24,
+        0.9,
+      ).setOrigin(0);
+      this.add.text(
+        (screener.x + target.x) / 2,
+        Math.min(screener.y, target.y) - 42,
+        "ZASŁONA",
+        {
+          ...textStyle("#fef3c7", "8px", true),
+          backgroundColor: "#7c2d12",
+          padding: { x: 4, y: 2 },
+        },
+      ).setOrigin(0.5);
+    }
   }
 
   private drawAssignments(

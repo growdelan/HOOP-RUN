@@ -29,6 +29,7 @@ export interface PlayerView {
   readonly zone: PossessionState["players"][number]["zone"];
   readonly hasBall: boolean;
   readonly interaction: PlayerInteraction;
+  readonly screenTargetId?: PlayerId;
 }
 
 export interface CardView {
@@ -99,6 +100,7 @@ export class PossessionSession {
           command.targetId === undefined ? [] : [command.targetId],
         ),
     );
+    const latestAction = this.stateValue.history.at(-1);
 
     return {
       seed: this.stateValue.seed,
@@ -121,6 +123,9 @@ export class PossessionSession {
           legalActorIds,
           legalTargetIds,
         ),
+        ...(latestAction?.kind === "screen" && latestAction.actorId === player.id
+          ? { screenTargetId: latestAction.targetId }
+          : {}),
       })),
       cards: this.stateValue.deck.map((cardId) => this.getCardView(cardId)),
       ...(this.stateValue.result?.quality === undefined
