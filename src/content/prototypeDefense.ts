@@ -63,7 +63,7 @@ export const PROTOTYPE_DEFENSE_CARDS = {
     effects: {
       screen: {
         advantageDelta: -1,
-        contestDelta: 2,
+        contestDelta: 5,
         turnoverPressureDelta: 0,
         extraClockCost: 0,
         exposure: "none",
@@ -101,7 +101,7 @@ export const PROTOTYPE_DEFENSE_CARDS = {
     effects: {
       drive: {
         advantageDelta: -2,
-        contestDelta: 4,
+        contestDelta: 10,
         turnoverPressureDelta: 0,
         extraClockCost: 0,
         exposure: "actionTarget",

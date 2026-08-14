@@ -4,7 +4,7 @@
 
 - Data walidacji lokalnej: 2026-08-14.
 - Zakres: pełny mecz 3 na 3 od `0:0` do zwycięstwa albo porażki.
-- Stan decyzji: provisional `iterate` — lokalna poprawność i docelowy czas są potwierdzone, a wykryty brak informacji naprawiono lokalnie przez liczbowe prognozy kart; ich skuteczność wymaga powtórnego meczu i testu osoby wcześniej nieznającej projektu.
+- Stan decyzji: `iterate`, korekta gotowa do ponownego testu — po wyniku `0:11` właściwe wejście po zasłonie otrzymało otwarte wykończenie, a wyspecjalizowane kontry obronne zostały wzmocnione. Automatyczny audyt potwierdza sprawczość, ale nie zastępuje pełnego meczu gracza.
 - Niedozwolony następny zakres: mapa runu, nagrody i metaprogresja pozostają wstrzymane do decyzji `proceed`, `iterate` albo `rethink`.
 
 ## Wyniki miar powodzenia
@@ -16,13 +16,13 @@
 | Wynik wpływa na wybór rzutu za 1 albo 2 w końcówce. | niepotwierdzona | W meczu zakończonym 2:11 decyzje były podejmowane częściowo na ślepo, ponieważ interfejs nie wyjaśniał skutków kart; nie dało się świadomie uzależnić strategii od wyniku. |
 | Co najmniej dwa ataki wymagają różnych sekwencji. | potwierdzona wewnętrznie | Pełny playtest seeda 42 pokazał osiem różnych rąk ofensywnych; intencje obrony i dostępne karty zmieniały możliwe przygotowanie rzutu. |
 | Co najmniej dwie obrony wymagają różnych odpowiedzi. | potwierdzona wewnętrznie | W jednym pełnym meczu wystąpiły `Pick & Roll`, `Drive & Kick` i `Quick Three`; macierz kart odróżnia zasłonę, wejście, podanie i rzut. |
-| Gracz umie wskazać wpływ decyzji defensywnej. | niepotwierdzona | Mimo ukończenia meczu gracz nie potrafił ocenić, co dają poszczególne karty, i wybierał częściowo na ślepo. Opisy nie pokazują liczbowego wpływu na przewagę, contest, jakość rzutu i ryzyko straty. |
+| Gracz umie wskazać wpływ decyzji defensywnej. | gotowa do ponownego testu | `Switch` na Screen pokazuje i daje `-5 pp`, a `Help Defense` na Drive `-10 pp`; pozostaje potwierdzić odczuwalną sprawczość w ręcznym meczu. |
 | Porażka jest wyjaśnialna bez ukrytego bonusu AI. | potwierdzona technicznie | Przeciwnik używa jawnego planu i bieżącej akcji, wspólnego modelu jakości oraz jednego seedowanego RNG; testy nie wykazały podglądu przyszłej ręki ani decyzji. |
-| Po meczu istnieje chęć rewanżu lub zmiany strategii. | niepotwierdzona | Po porażce 2:11 gracz nie chciał rewanżu, ponieważ nie rozumiał skutków kart i nie widział podstawy do świadomej zmiany strategii. |
+| Po meczu istnieje chęć rewanżu lub zmiany strategii. | niepotwierdzona | Drugi mecz po poprawie informacji zakończył się `0:11`; brak realnej możliwości wygrania lub zatrzymania rywala nadal blokuje motywację do kolejnej próby. |
 
 ## Dowody lokalne
 
-- `./scripts/verify.sh` obejmuje lint, TypeScript `strict`, 65 testów Vitest, produkcyjny build i Playwright.
+- `./scripts/verify.sh` obejmuje lint, TypeScript `strict`, 68 testów Vitest, produkcyjny build i Playwright.
 - Testy domenowe obejmują regułę `11 / +2 / limit 15`, punktację 1/2, trzy plany, różne ręce, przetasowanie, stratę, koniec czasu i deterministyczny rewanż.
 - Playwright wykonuje rzeczywiste kliknięcia w canvas dla pełnego zwycięstwa z seedem 2, pełnej porażki z seedem 42, zmian ról, podsumowań i rewanżu.
 - Zwycięstwo jest automatyzowane w viewportach 1440×900 i 1024×768; canvas w węższym widoku mieści się w szerokości strony.
@@ -30,12 +30,14 @@
 - Produkcyjny preview działa pod `/HOOP-RUN/`; konsola nie zawierała błędów ani ostrzeżeń, a E2E nie wykryło błędnych odpowiedzi lub nieudanych żądań.
 - Pierwszy ręczny pełny mecz na publicznym buildzie `7ae3ce2`, seed 42, zakończył się porażką 2:11 po około 10 minutach. Przepływ dało się ukończyć, ale gracz wybierał częściowo na ślepo z powodu braku liczbowych i porównawczych objaśnień kart i nie chciał rewanżu z tego samego powodu.
 - Lokalna iteracja pokazuje przed wyborem zmianę `Advantage`, wpływ na rzut w punktach procentowych, szansę straty, odsłonięcie zawodnika oraz aktualny procent, kategorię i wartość `Shot`. Playtest seeda 7 potwierdził czytelne porównanie odpowiedzi na `Screen` w viewportach 1280×720 i 1024×768.
+- Powtórny ręczny mecz po opublikowaniu prognoz zakończył się `0:11`. Gracz nadal nie był w stanie wygrać ani skutecznie bronić; wcześniejsza analiza wykazała również przypadek, w którym zamierzona kontra `Drive` miała niższą oczekiwaną wartość punktową niż natychmiastowy `Shot`.
+- Po korekcie `Screen → Drive` przeciw `Deny Perimeter` zmienia prognozę z 36% za 2 na 80% za 1 i tworzy jawne otwarte wejście. Strategia oparta na intencjach wygrała 82/100 seedów, przegrała 18/100, a seed 42 zakończyła `12:6`; słabszy atak wygrał tylko 44/100. Produkcyjny playtest 1280×720 i 1024×768 był czytelny i bez błędów konsoli.
 
 ## Brakujące dowody obowiązkowe
 
-1. Powtórny ręczny pełny mecz potwierdzający, że gracz potrafi świadomie uzasadnić wybór i chce zmienić strategię albo zagrać rewanż.
+1. Powtórny ręczny pełny mecz potwierdzający, że właściwe odczytanie intencji daje realną szansę na wyrównany wynik lub zwycięstwo.
 2. Test z co najmniej jedną osobą, która wcześniej nie znała projektu, obejmujący pomiar czasu, rozpoznanie roli, rozumienie obrony, wpływ wyniku i chęć rewanżu.
-3. Na podstawie testu nowego gracza ostateczny wybór bramki `proceed`, `iterate` albo `rethink` i zapisanie uzasadnienia w tym dokumencie oraz `STATUS.md`.
+3. Po korekcie i testach ostateczny wybór bramki `proceed`, `iterate` albo `rethink`.
 
 ## Scenariusz testu nowego gracza
 

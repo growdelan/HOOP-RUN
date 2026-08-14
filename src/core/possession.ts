@@ -257,6 +257,7 @@ function playDrive(
     ? Math.min(state.rules.shotQuality.maxAdvantage, state.advantage + 2)
     : Math.max(0, state.advantage - 1);
   const helpCommitted = state.defense.intent.helpOnDrive;
+  const createsOpenFinish = beatPressure && !helpCommitted;
   const nextPlayers = movePlayer(state.players, actor.id, "paint");
   const events: DomainEvent[] = [
     {
@@ -266,6 +267,8 @@ function playDrive(
   ];
   if (helpCommitted) {
     events.push({ type: "defenseReacted", reaction: "helpCommitted" });
+  } else if (createsOpenFinish) {
+    events.push({ type: "defenseReacted", reaction: "uncontestedFinish" });
   }
   if (nextAdvantage !== state.advantage) {
     events.push({
@@ -288,6 +291,9 @@ function playDrive(
       screenedPlayerIds: state.screenedPlayerIds.filter(
         (playerId) => playerId !== actor.id,
       ),
+      openPlayerIds: createsOpenFinish
+        ? addUnique(state.openPlayerIds, actor.id)
+        : state.openPlayerIds,
       defense: { ...state.defense, helpCommitted },
     },
     events,

@@ -362,6 +362,7 @@ function formatEvents(
         pressureBeaten: "Zasłona pokonuje presję.",
         ballHandlerContained: "Presja zatrzymuje przewagę.",
         helpCommitted: "Obrona wysyła pomoc do paint.",
+        uncontestedFinish: "Brak pomocy otwiera wykończenie w paint.",
       } as const;
       messages.push(reactions[event.reaction]);
     } else if (event.type === "advantageChanged") {

@@ -185,7 +185,11 @@ export type DomainEvent =
     }
   | {
       readonly type: "defenseReacted";
-      readonly reaction: "pressureBeaten" | "ballHandlerContained" | "helpCommitted";
+      readonly reaction:
+        | "pressureBeaten"
+        | "ballHandlerContained"
+        | "helpCommitted"
+        | "uncontestedFinish";
     }
   | {
       readonly type: "advantageChanged";

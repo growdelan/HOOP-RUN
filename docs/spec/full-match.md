@@ -142,13 +142,15 @@ Prototyp zawiera pięć współdzielonych mechanik:
 
 | Mechanika | Podstawowa korzyść | Jawne ryzyko |
 |---|---|---|
-| `Pressure` | zużywa czas i zwiększa presję na piłce | TODO w macierzy Milestone 5 |
-| `Switch` | utrzymuje krycie po zasłonie | TODO w macierzy Milestone 5 |
+| `Pressure` | zużywa czas i zwiększa presję na piłce | może oddać przewagę po Drive i nie neutralizuje zasłony |
+| `Switch` | utrzymuje krycie po zasłonie i daje `5 pp` contestu | zmienia dopasowanie |
 | `Go Under` | ogranicza wejście i oszczędza zmianę krycia | przestrzeń do rzutu z obwodu |
-| `Help Defense` | ogranicza wejście do `paint` | otwarty partner po odegraniu |
+| `Help Defense` | ogranicza wejście do `paint` i daje `10 pp` contestu | otwarty partner po odegraniu |
 | `Double Team` | zwiększa szansę straty | wolny partner i ryzyko łatwego podania |
 
 Tabela opisuje znaczenie produktu. Prototypowe koszty, progi i macierz interakcji są zapisane jako typowane dane zawartości i podlegają walidacji w pełnym meczu. Żadna karta nie może być bezwarunkowo najlepsza przeciw wszystkim planom.
+
+W ataku `Screen → Drive` przeciw intencji bez pomocy tworzy otwarte wykończenie. Intencja wysyłająca pomoc nie daje tej premii, lecz odblokowuje otwarty `Kick Out`.
 
 ## Plany przeciwnika
 

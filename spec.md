@@ -130,6 +130,8 @@ Domyślny scenariusz rozpoczyna się ze stałą pięciokartową ręką obejmują
 
 `Advantage` jest jawną, ograniczoną liczbowo wartością opisującą przewagę nad obroną. Pierwszy model używa zakresu `0–3`; jest to parametr prototypu, a nie finalny balans.
 
+Jeżeli `Screen` pozwoli pokonać presję, a ujawniona intencja nie wysyła pomocy do `paint`, następujący `Drive` tworzy otwarte wykończenie. Gdy pomoc zostaje wysłana, nagrodą pozostaje otwarty `Kick Out`; jedna sekwencja nie może otrzymać obu premii naraz.
+
 Każda zmiana `Advantage` generuje zdarzenie zawierające źródło i wartość zmiany. Jakość rzutu jest obliczana z listy nazwanych modyfikatorów, co najmniej:
 
 - bazowej umiejętności strzelca,
@@ -306,6 +308,7 @@ Poniższe pytania balansowe nie blokują rozpoczęcia Milestone 4, o ile impleme
 - Przyjęto do playtestu prototypową macierz efektów pięciu mechanik defensywnych; wartości pozostają balansem w danych.
 - Przyjęto plany `Pick & Roll`, `Drive & Kick`, `Quick Three` oraz trzy intencje defensywne pierwszego przeciwnika.
 - Przyjęto po pierwszym pełnym playteście: karty pokazują dokładny przewidywany efekt liczbowy dla bieżącego stanu, a `Shot` także aktualną kategorię i procent trafienia.
+- Przyjęto po audycie balansu Milestone 7: `Screen → Drive` bez pomocy tworzy otwarte wykończenie, `Switch` daje `5 pp` contestu na zasłonie, a `Help Defense` `10 pp` contestu na wejściu; są to strojalne wartości prototypu.
 - TODO przed ukończeniem Milestone 7: wybrać statystyki podsumowania i referencyjne seedy wygranej, porażki, wyrównanej końcówki oraz wszystkich planów.
 - TODO przed ukończeniem Milestone 7: zweryfikować, czy i jak aktualny wynik wpływa na wybór planu AI; AI nie może otrzymać ukrytej wiedzy ani bonusu.
 - TODO po playteście stref: zatwierdzić albo zmienić topologię boiska.

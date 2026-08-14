@@ -611,20 +611,38 @@ function offenseCardInsights(
   }
   if (kind === "drive") {
     const beatsPressure = state.screenedPlayerIds.includes(ballHandler.id);
+    const helpCommitted = state.defense.intent.helpOnDrive;
+    const createsOpenFinish = beatsPressure && !helpCommitted;
     const nextAdvantage = beatsPressure
       ? Math.min(rules.maxAdvantage, state.advantage + 2)
       : Math.max(0, state.advantage - 1);
-    const zoneDelta =
-      rules.zoneModifiers.paint - rules.zoneModifiers[ballHandler.zone];
+    const nextState: PossessionState = {
+      ...state,
+      players: state.players.map((player) =>
+        player.id === ballHandler.id ? { ...player, zone: "paint" } : player,
+      ),
+      advantage: nextAdvantage,
+      openPlayerIds: createsOpenFinish
+        ? [...new Set([...state.openPlayerIds, ballHandler.id])]
+        : state.openPlayerIds,
+      defense: { ...state.defense, helpCommitted },
+    };
+    const nextShooter = nextState.players.find(
+      (player) => player.id === ballHandler.id,
+    );
     const qualityDelta =
-      (nextAdvantage - state.advantage) * rules.advantageBonusPerPoint +
-      zoneDelta;
+      nextShooter === undefined
+        ? 0
+        : calculateShotQuality(nextState, nextShooter).totalScore -
+          calculateShotQuality(state, ballHandler).totalScore;
     return [
       `PRZEWAGA: ${state.advantage} → ${nextAdvantage}`,
       `WPŁYW NA RZUT: ${signed(qualityDelta)} PP`,
-      state.defense.intent.helpOnDrive
+      helpCommitted
         ? "OBRONA: pomoc otworzy Kick Out"
-        : "OBRONA: bez automatycznej pomocy",
+        : createsOpenFinish
+          ? `OTWARTE WEJŚCIE: +${rules.openLookBonus} PP`
+          : "OBRONA: bez automatycznej pomocy",
     ];
   }
   if (kind === "kickOut") {

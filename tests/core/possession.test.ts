@@ -121,6 +121,7 @@ describe("silnik posiadania", () => {
     state = driveResult.state;
     expect(playerZone(state, "offense-pg")).toBe("paint");
     expect(state.advantage).toBe(2);
+    expect(state.openPlayerIds).not.toContain("offense-pg");
 
     state = playAccepted(state, {
       cardId: "kickOut",
@@ -171,6 +172,54 @@ describe("silnik posiadania", () => {
     expect(prepared.pendingShot?.quality.category).toBe("Perfect");
     expect(prepared.pendingShot?.quality.totalScore).toBeGreaterThan(
       immediate.pendingShot?.quality.totalScore ?? 0,
+    );
+  });
+
+  it("nagradza otwarte wykończenie po zasłonie, gdy obrona nie wysyła pomocy", () => {
+    const setup: PossessionSetup = {
+      ...PROTOTYPE_SETUP,
+      defense: {
+        ...PROTOTYPE_SETUP.defense,
+        intent: {
+          id: "deny-perimeter",
+          name: "Deny Perimeter",
+          description: "Presja na obwodzie bez pomocy w paint.",
+          onBallPressure: 8,
+          matchupContest: 16,
+          helpOnDrive: false,
+        },
+      },
+    };
+    const immediate = playAccepted(resetPossession(setup, 42), {
+      cardId: "shot",
+      actorId: "offense-pg",
+    });
+    let state = resetPossession(setup, 42);
+    state = playAccepted(state, {
+      cardId: "screen",
+      actorId: "offense-c",
+      targetId: "offense-pg",
+    });
+    const drive = playAccepted(state, {
+      cardId: "drive",
+      actorId: "offense-pg",
+    });
+    const shot = playAccepted(drive, {
+      cardId: "shot",
+      actorId: "offense-pg",
+    });
+
+    expect(drive.openPlayerIds).toContain("offense-pg");
+    expect(drive.events).toContainEqual({
+      type: "defenseReacted",
+      reaction: "uncontestedFinish",
+    });
+    expect(shot.pendingShot?.quality).toMatchObject({
+      totalScore: 80,
+      category: "Perfect",
+    });
+    expect((shot.pendingShot?.quality.totalScore ?? 0) * 1).toBeGreaterThan(
+      (immediate.pendingShot?.quality.totalScore ?? 0) * 2,
     );
   });
 

@@ -64,7 +64,7 @@ describe("aktywne posiadanie defensywne", () => {
     });
 
     expect(result.opponentAdvantage).toBe(0);
-    expect(result.shotContest).toBe(2);
+    expect(result.shotContest).toBe(5);
     expect(result.assignments).toEqual(
       expect.arrayContaining([
         { defenderId: "player-c", offenderId: "opponent-pg" },
@@ -93,7 +93,7 @@ describe("aktywne posiadanie defensywne", () => {
     ).toMatchObject({
       timeCost: 1,
       nextOpponentAdvantage: 0,
-      shotQualityDelta: -2,
+      shotQualityDelta: -5,
       turnoverChance: 0,
     });
     expect(
@@ -127,7 +127,7 @@ describe("aktywne posiadanie defensywne", () => {
     });
 
     expect(result.opponentAdvantage).toBe(0);
-    expect(result.shotContest).toBe(4);
+    expect(result.shotContest).toBe(10);
     expect(result.exposedOpponentIds).toContain("opponent-wing");
     expect(result.events).toContainEqual({
       type: "opponentExposed",

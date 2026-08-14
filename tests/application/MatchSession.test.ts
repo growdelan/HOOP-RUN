@@ -40,6 +40,27 @@ describe("MatchSession", () => {
       ]));
   });
 
+  it("pokazuje opłacalną kontrę Screen → Drive przeciw Deny Perimeter", () => {
+    const session = new MatchSession(42);
+    expect(session.getViewModel().contextName).toBe("Deny Perimeter");
+
+    playCardThroughInteractions(session, "screen");
+    expect(session.getViewModel().cards.find((card) => card.id === "drive")?.insights)
+      .toEqual([
+        "PRZEWAGA: 0 → 2",
+        "WPŁYW NA RZUT: +44 PP",
+        "OTWARTE WEJŚCIE: +16 PP",
+      ]);
+
+    playCardThroughInteractions(session, "drive");
+    expect(session.getViewModel().cards.find((card) => card.id === "shot")?.insights)
+      .toEqual([
+        "SZANSA TRAFIENIA: 80%",
+        "KATEGORIA: Perfect",
+        "WARTOŚĆ: 1 PKT",
+      ]);
+  });
+
   it("prowadzi ofensywne posiadanie do zatrzymanego podsumowania i zmiany roli", () => {
     const session = new MatchSession(42);
     playImmediateShot(session);
@@ -144,6 +165,22 @@ function playImmediateShot(session: MatchSession): void {
     .players.find((player) => player.hasBall && player.side === "player");
   if (ballHandler === undefined) throw new Error("Brak posiadacza piłki gracza.");
   session.selectPlayer(ballHandler.id);
+}
+
+function playCardThroughInteractions(session: MatchSession, cardId: string): void {
+  session.selectCard(cardId);
+  for (let step = 0; step < 3; step += 1) {
+    const target = session
+      .getViewModel()
+      .players.find(
+        (player) =>
+          player.interaction === "legalActor" ||
+          player.interaction === "legalTarget",
+      );
+    if (target === undefined) return;
+    session.selectPlayer(target.id);
+  }
+  throw new Error(`Karta ${cardId} nie zakończyła wyboru celu.`);
 }
 
 function playDefensePossession(session: MatchSession): void {
