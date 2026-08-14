@@ -2,12 +2,13 @@
 
 ## Status i źródła
 
-- Status: zweryfikowany pionowy przekrój PRD 000 oraz zaplanowany pełny mecz PRD 001.
-- Źródła wymagań: `prd/000-initial-prd.md` i `prd/001-full-match.md`.
+- Status: zweryfikowane zakresy PRD 000 i PRD 001 oraz PRD 002 gotowy do planowania.
+- Gwiazda północna produktu: `docs/product-vision.md`.
+- Źródła wymagań: `prd/000-initial-prd.md` i `prd/001-full-match.md`; PRD 002 nie zmienia specyfikacji przed planowaniem.
 - Data utworzenia: 2026-08-14.
 - Ostatnia aktualizacja: 2026-08-14.
-- Zakres obowiązywania: fundament produktu, działające ofensywne posiadanie oraz reguły planowanego pełnego meczu 3 na 3.
-- Walidacja zakresu: `docs/validation/prd-000-validation.md`; bramka PRD 000 zakończona wynikiem `proceed`.
+- Zakres obowiązywania: fundament produktu, działające ofensywne posiadanie oraz zweryfikowany pełny mecz 3 na 3.
+- Walidacja zakresu: `docs/validation/prd-000-validation.md` i `docs/validation/prd-001-validation.md`; obie bramki zakończone wynikiem `proceed`.
 
 ## Cel produktu
 

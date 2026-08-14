@@ -1,6 +1,6 @@
 # Roadmapa HOOP-RUN
 
-Roadmapa obejmuje ukończone `prd/000-initial-prd.md` i `prd/001-full-match.md`. Dozwolone statusy: `planned`, `in_progress`, `done`, `blocked`.
+Roadmapa obejmuje ukończone `prd/000-initial-prd.md` i `prd/001-full-match.md`. `prd/002-first-run-loop.md` jest gotowy do planowania, ale nie ma jeszcze zatwierdzonych milestone'ów. Dozwolone statusy: `planned`, `in_progress`, `done`, `blocked`.
 
 Milestone można oznaczyć jako `done`, gdy wszystkie kryteria akceptacji są spełnione, wskazana walidacja i wymagany playtest przeszły, dokumentacja odpowiada faktom, a problemy blokujące z wymaganego review zostały rozwiązane.
 

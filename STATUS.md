@@ -8,7 +8,7 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 - Status: `done`; test zewnętrzny zakończył bramkę PRD 001 decyzją `proceed`.
 - Bramka PRD 000: `proceed` na podstawie wewnętrznego playtestu.
 - Bramka PRD 001: `proceed` na podstawie automatycznych, wewnętrznych i zewnętrznych dowodów.
-- Aktywny zakres implementacyjny: brak; następny zakres wymaga przyrostowego PRD pierwszej pętli runu.
+- Aktywny zakres implementacyjny: brak; `prd/002-first-run-loop.md` jest gotowy do planowania.
 - Poza zatwierdzonym zakresem: zbiórki, kontry, faule, wielu przeciwników, finalna oprawa, metaprogresja i zapis postępu.
 
 ## Co zrobiono
@@ -31,6 +31,8 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 - Udokumentowano pięć miar PRD 000 i decyzję bramki `proceed` w `docs/validation/prd-000-validation.md`.
 - Utworzono przyrostowy `prd/001-full-match.md` dla meczu do 11 punktów, naprzemiennych posiadań, osobnych talii i aktywnej obrony.
 - Rozszerzono `spec.md` oraz `docs/spec/full-match.md` o agregat meczu, cykle talii, defensywne posiadanie, plany przeciwnika i jeden kanoniczny przepływ RNG.
+- Utworzono `docs/product-vision.md` jako trwałą gwiazdę północną produktu, oddzieloną od backlogu i zakresów zatwierdzanych przez PRD.
+- Utworzono przyrostowy `prd/002-first-run-loop.md` dla liniowego runu trzech meczów, nagród kartowych, nowych kart, trzech przeciwników i jednego lokalnego zapisu między meczami.
 - Zaplanowano Milestone'y 4–7 w `ROADMAP.md`; ukończoną roadmapę PRD 000 przeniesiono do `docs/archive/roadmap/prd-000.md`.
 - Zaimplementowano deterministyczny `MatchState`, punktację 1/2, warunek `11 / +2 / limit 15`, ścisłą naprzemienność, statystyki oraz niezależne cykle talii z dobieraniem i przetasowaniem.
 - Zaimplementowano headlessowe defensywne posiadanie z planami `Pick & Roll`, `Drive & Kick`, `Quick Three`, pięcioma mechanikami kart, stratą, końcem czasu i wspólnym modelem jakości rzutu.
@@ -39,8 +41,8 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 
 ## Co jest następne
 
-- Przeprowadzić wywiad i utworzyć przyrostowy PRD pierwszej pętli runu.
-- Nie implementować mapy, nagród ani progresji przed zaplanowaniem nowego PRD.
+- Zamienić `prd/002-first-run-loop.md` w aktualizację `spec.md` i mierzalne milestone'y w `ROADMAP.md` za pomocą `$codex-flow-plan-from-prd`.
+- Nie implementować runu, nagród, nowych kart ani zapisu przed zaplanowaniem PRD 002.
 - Commit i push nadal wymagają jawnego polecenia.
 
 ## Ostatnia walidacja
@@ -80,7 +82,7 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 
 ## Handoff
 
-- Najkrótsze streszczenie: PRD 000 i PRD 001 są ukończone z decyzjami `proceed`; grywalny pełny mecz przeszedł test zewnętrzny 8:11 w 10 minut i uzasadnia zaprojektowanie pierwszej pętli runu.
+- Najkrótsze streszczenie: PRD 000 i PRD 001 są ukończone z decyzjami `proceed`; `prd/002-first-run-loop.md` opisuje pierwszy trzy-meczowy run i jest gotowy do planowania zgodnie z `docs/product-vision.md`.
 - Decyzje, których nie wolno zgubić: do 11, przewaga 2, limit 15; punktacja 1/2; ścisła naprzemienność; osobne utrzymujące stan talie; `Dalej` po każdym posiadaniu; jeden kanoniczny RNG; Phaser tylko prezentuje model widoku.
-- Pliki do przeczytania jako pierwsze: `STATUS.md`, wynik bramki w `docs/validation/prd-001-validation.md` oraz ukończone `prd/001-full-match.md`.
-- Następny bezpieczny krok: wywiad produktowy i przyrostowy PRD pierwszej pętli runu.
+- Pliki do przeczytania jako pierwsze: `STATUS.md`, `prd/002-first-run-loop.md`, `docs/product-vision.md` oraz wynik bramki w `docs/validation/prd-001-validation.md`.
+- Następny bezpieczny krok: zaplanowanie PRD 002 za pomocą `$codex-flow-plan-from-prd`.
