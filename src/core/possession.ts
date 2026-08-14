@@ -11,11 +11,11 @@ import type {
   RuleResult,
   ShotModifier,
   ShotQuality,
-  ShotQualityCategory,
   Zone,
 } from "./model.ts";
 import { normalizeSeed, xorshift32RandomSource } from "./rng.ts";
 import type { RandomSource } from "./rng.ts";
+import { categorizeShotScore, clampShotScore } from "./shotQuality.ts";
 
 const PERIMETER_ZONES: readonly Zone[] = [
   "leftPerimeter",
@@ -399,7 +399,7 @@ function finishCard(
   const commonState: PossessionState = {
     ...changedState,
     shotClock,
-    hand: previousState.hand.filter((cardId) => cardId !== card.id),
+    hand: removeFirst(previousState.hand, card.id),
     history: [...previousState.history, action],
     events: [...previousState.events, ...actionEvents],
   };
@@ -462,25 +462,14 @@ function calculateShotQuality(
     (score, modifier) => score + modifier.value,
     0,
   );
-  const totalScore = Math.max(5, Math.min(95, rawScore));
+  const totalScore = clampShotScore(rawScore);
 
   return {
     baseScore: shooter.shooting,
     modifiers,
     totalScore,
-    category: categorizeShot(totalScore, rules.categoryMinimums),
+    category: categorizeShotScore(totalScore, rules.categoryMinimums),
   };
-}
-
-function categorizeShot(
-  score: number,
-  minimums: PossessionState["rules"]["shotQuality"]["categoryMinimums"],
-): ShotQualityCategory {
-  if (score < minimums.Contested) return "Bad";
-  if (score < minimums.Decent) return "Contested";
-  if (score < minimums.Open) return "Decent";
-  if (score < minimums.Perfect) return "Open";
-  return "Perfect";
 }
 
 function findPlayer(
@@ -525,6 +514,13 @@ function movePlayer(
 
 function addUnique(values: readonly string[], value: string): readonly string[] {
   return values.includes(value) ? values : [...values, value];
+}
+
+function removeFirst(values: readonly string[], value: string): readonly string[] {
+  const result = [...values];
+  const index = result.indexOf(value);
+  if (index >= 0) result.splice(index, 1);
+  return result;
 }
 
 function accept(

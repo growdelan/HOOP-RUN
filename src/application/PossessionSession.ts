@@ -388,6 +388,9 @@ function formatModifier(modifier: ShotModifier): string {
     onBallPressure: "Presja na piłce",
     createdOpenLook: "Otwarta pozycja",
     advantage: "Advantage",
+    defensiveResponse: "Odpowiedź obrony",
+    opponentAdvantage: "Przewaga przeciwnika",
+    exposedShooter: "Odsłonięty strzelec",
   };
   return `${labels[modifier.source]} ${modifier.value >= 0 ? "+" : ""}${modifier.value}`;
 }

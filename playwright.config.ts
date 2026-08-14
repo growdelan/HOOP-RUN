@@ -6,7 +6,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   reporter: "line",
-  timeout: 30_000,
+  timeout: 90_000,
   expect: {
     timeout: 5_000,
   },

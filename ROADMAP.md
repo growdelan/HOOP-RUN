@@ -1,230 +1,239 @@
 # Roadmapa HOOP-RUN
 
-Roadmapa realizuje `prd/000-initial-prd.md`. Dozwolone statusy: `planned`, `in_progress`, `done`, `blocked`.
+Roadmapa obejmuje ukończone `prd/000-initial-prd.md` i aktywne `prd/001-full-match.md`. Dozwolone statusy: `planned`, `in_progress`, `done`, `blocked`.
 
 Milestone można oznaczyć jako `done`, gdy wszystkie kryteria akceptacji są spełnione, wskazana walidacja i wymagany playtest przeszły, dokumentacja odpowiada faktom, a problemy blokujące z wymaganego review zostały rozwiązane.
 
-## Kolejność i bramka zakresu
+## Aktualna kolejność
 
-Milestone'y wykonuje się kolejno: `0 → 1 → 2 → 3`. Milestone 2 jest pierwszym właściwym pionowym przekrojem gameplayu. Milestone 3 kończy PRD 000 i stanowi bramkę decyzji: rozwój pełnego meczu albo runu wymaga oceny hipotezy oraz nowego lub przyrostowego PRD.
+Milestone'y PRD 001 wykonuje się kolejno: `4 → 5 → 6 → 7`.
 
-## Milestone 0: Fundament aplikacji przeglądarkowej (`done`)
+- Milestone 4 buduje deterministyczny agregat meczu i cykl dwóch talii.
+- Milestone 5 dostarcza headlessowy silnik aktywnej obrony oraz jednego przeciwnika.
+- Milestone 6 jest minimalnym grywalnym pionowym przekrojem pełnego meczu end-to-end.
+- Milestone 7 waliduje główną hipotezę PRD 001 i stanowi bramkę przed projektowaniem runu.
 
-### Cel
-
-Utworzyć minimalną, powtarzalną bazę TypeScript + Phaser + Vite, na której można bezpiecznie implementować i testować posiadanie.
-
-### Hipoteza do zweryfikowania
-
-Wybrany stos pozwala uruchamiać, testować i budować statyczny prototyp Phasera pod niekorzeniową ścieżką GitHub Pages bez backendu.
-
-### Kryteria akceptacji
-
-- `package.json` i `package-lock.json` definiują projekt npm oraz skrypty `dev`, `lint`, `typecheck`, `test`, `build` i `preview`.
-- TypeScript działa w trybie `strict`.
-- Minimalna scena Phasera uruchamia się w przeglądarce i renderuje rozpoznawalną planszę testową.
-- Struktura rozdziela `core`, `content`, `application`, `presentation` i `platform` albo równoważne jednoznaczne granice.
-- Produkcyjny build działa z bazową ścieżką `/HOOP-RUN/` i nie zgłasza brakujących zasobów.
-- `./scripts/verify.sh` przechodzi.
-
-### Zakres
-
-- konfiguracja npm, TypeScriptu, Vite, Phasera, lintera i Vitest,
-- minimalne entrypointy i scena startowa bez reguł gry,
-- konfiguracja bazy GitHub Pages,
-- jeden test potwierdzający działanie środowiska testowego,
-- aktualizacja README o prawdziwe komendy uruchomienia.
-
-### Poza zakresem
-
-- model posiadania i karty,
-- UI ręki i interakcje gameplayowe,
-- Playwright i workflow publikacji,
-- finalny layout, grafika i audio.
-
-### Walidacja
-
-- Testy automatyczne: test środowiska przez `npm run test`.
-- Build: `npm run typecheck`, `npm run lint`, `npm run build`, `./scripts/verify.sh`.
-- Playtest: wymagany smoke test uruchomienia sceny w przeglądarce pod lokalnym preview z bazą `/HOOP-RUN/`; sprawdzić konsolę i zasoby.
-- Review: wymagane sprawdzenie granic modułów i konfiguracji przed `done`.
-
-### Zależności i ryzyka
-
-- Zależność: dostępne Node.js i npm.
-- Ryzyko: nadmiar bibliotek przed pierwszą mechaniką; instalować tylko zależności potrzebne do kryteriów.
-- Ryzyko: konfiguracja działająca wyłącznie pod `/`; testować niekorzeniową bazę od początku.
-
-## Milestone 1: Deterministyczny silnik posiadania (`done`)
+## Milestone 4: Deterministyczny szkielet meczu i talii (`done`)
 
 ### Cel
 
-Zaimplementować czystą, testowalną bez Phasera logikę pojedynczego posiadania wraz z kartami, zegarem, obroną i rozstrzygnięciem rzutu.
+Rozszerzyć czysty model domenowy o wynik, naprzemienne posiadania, warunek zwycięstwa, statystyki oraz niezależne cykle talii ataku i obrony, bez implementowania jeszcze grywalnej obrony.
 
 ### Hipoteza do zweryfikowania
 
-Pięć podstawowych mechanik i jeden jawny profil obrony wystarczą, aby co najmniej dwie sekwencje decyzji prowadziły do różnych, wyjaśnialnych jakości rzutu.
+Istniejący silnik posiadania można bezpiecznie osadzić w deterministycznym agregacie meczu, a utrzymujące stan talie generują różne ręce bez utraty odtwarzalności.
 
 ### Kryteria akceptacji
 
-- Serializowalny stan obsługuje fazy `setup`, `playerTurn`, `resolvingShot` i `completed` oraz wynik `clockExpired`.
-- Stan reprezentuje sześciu uczestników, cztery prototypowe strefy, piłkę, krycie, zegar, intencję, `Advantage`, rękę i historię.
-- Mechaniki `Pass`, `Screen`, `Drive`, `Kick Out` i `Shot` mają typowane definicje danych i działające reguły.
-- Nielegalna akcja zwraca stabilny powód i nie zmienia stanu ani RNG.
-- Obrona zapowiada i wykonuje deterministyczną reakcję, którą można skontrować właściwą sekwencją.
-- Natychmiastowy `Shot` i przygotowany `Shot` dają różne rozkłady modyfikatorów lub kategorie jakości.
-- Ten sam seed i sekwencja komend dają identyczny stan końcowy; różne seedy mogą zmienić wynik bez zmiany wyliczonej jakości.
-- `core` nie importuje Phasera, DOM ani API przeglądarki.
+- Serializowalny `MatchState` reprezentuje seed i jeden kanoniczny przebieg RNG, wynik, aktywną stronę, rolę gracza, numer posiadania, fazę meczu, dwie talie, statystyki, historię i opcjonalne aktywne posiadanie.
+- Fazy meczu rozróżniają aktywne posiadanie, podsumowanie posiadania i zakończony mecz.
+- Trafiony rzut przyznaje 1 punkt z `paint` i 2 punkty ze stref obwodowych; pozostałe rezultaty dają 0 punktów.
+- Warunek `do 11, przewaga 2, maksymalnie do 15` poprawnie obsługuje co najmniej wyniki `11:9`, `11:10`, `12:10`, `14:14` i `15:14`.
+- Każdy rezultat posiadania przełącza atakującą drużynę dokładnie raz dopiero po zatwierdzeniu podsumowania.
+- Talia ofensywna i defensywna mają niezależne stosy dobierania, ręce i stosy odrzuconych; dobieranie do pięciu oraz przetasowanie są deterministyczne.
+- Niewykorzystane i zagrane karty wracają do właściwego stosu odrzuconych po posiadaniu.
+- Ten sam seed i sekwencja kontrolowanych rezultatów dają identyczne ręce, wynik, historię i statystyki.
+- Istniejące testy pojedynczego posiadania pozostają niezmiennie zaliczone.
 
 ### Zakres
 
-- typy i fabryka stanu początkowego,
-- wstrzykiwany seedowany RNG,
-- walidacja i niemutująca redukcja stanu,
-- dane pięciu podstawowych kart i stałej ręki testowej,
-- zegar, `Advantage`, modyfikatory jakości, kategorie rzutu i wynik,
-- jeden profil obrony oraz zdarzenia domenowe,
-- testy podstawowe, brzegowe i odtwarzalności.
+- typy i reducer pełnego meczu,
+- reguły punktacji, naprzemienności i zwycięstwa,
+- generyczny cykl talii oraz deterministyczne tasowanie,
+- kontrakt uruchamiania i zamykania posiadania,
+- historia i podstawowe statystyki meczu,
+- dane startowych talii jako prototypowe parametry,
+- testy przypadków podstawowych, brzegowych i niemutowalności.
 
 ### Poza zakresem
 
-- renderowanie i sterowanie,
-- losowe dobieranie kart,
-- pełny balans statystyk,
-- wiele profili obrony, talia defensywna, zbiórki i pełny mecz.
+- reguły kart defensywnych i plany przeciwnika,
+- interfejs pełnego meczu,
+- balans końcowych talii,
+- zbiórki, kontry, faule, run i zapis postępu.
 
 ### Walidacja
 
-- Testy automatyczne: pełny zestaw Vitest dla legalności, kosztu czasu, pięciu mechanik, obrony, jakości, RNG, resetu i braku mutacji wejścia.
-- Build: `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, `./scripts/verify.sh`.
-- Playtest: niewymagany, ponieważ milestone nie zmienia grywalnego interfejsu; dowodem są testy scenariuszy domenowych.
-- Review: wymagane read-only review kontraktów, deterministyczności i kompletności przypadków brzegowych.
-
-### Zależności i ryzyka
-
-- Zależność: Milestone 0.
-- Ryzyko: przeprojektowanie silnika przed dowodem gameplayu; implementować tylko reguły PRD 000.
-- Ryzyko: jedna wymuszona kombinacja; testy muszą wykazać co najmniej dwie legalne ścieżki o różnych skutkach.
-- Ryzyko: arbitralne liczby mogą wyglądać jak finalny balans; trzymać je jako dane prototypowe.
-
-## Milestone 2: Grywalne posiadanie 3 na 3 (`done`)
-
-### Cel
-
-Połączyć silnik z Phaserem w kompletny, powtarzalny przepływ jednego ofensywnego posiadania obsługiwany myszą.
-
-### Hipoteza do zweryfikowania
-
-Gracz potrafi odczytać stan i intencję obrony, zbudować akcję z kart oraz zrozumieć, dlaczego przygotowany rzut jest lepszy od natychmiastowego.
-
-### Kryteria akceptacji
-
-- Ekran pokazuje półboisko, sześć rozróżnialnych tokenów, cztery strefy, krycie, piłkę, zegar, `Advantage`, intencję i pięć kart.
-- Posiadacz piłki, wykonujący, legalne cele i akcje są jednoznaczne bez polegania wyłącznie na kolorze.
-- Gracz może przeprowadzić `Screen → Drive → Kick Out → Shot` oraz co najmniej jedną alternatywną legalną ścieżkę.
-- Zagrana karta aktualizuje widoczny stan, koszt czasu i komunikat przyczynowy zgodnie z wynikiem `core`.
-- Nielegalna karta nie zmienia stanu i pokazuje konkretny powód.
-- `Shot` pokazuje kategorię i modyfikatory, rozstrzyga wynik i przechodzi do podsumowania.
-- Reset z tym samym seedem nie przeładowuje strony i odtwarza wynik dla tej samej sekwencji.
-- Podstawowy przepływ nie ma błędów konsoli, brakujących zasobów ani ślepej uliczki.
-
-### Zakres
-
-- jedna scena lub minimalny zestaw scen Phasera dla posiadania i podsumowania,
-- taktyczna plansza z prostymi tokenami i etykietami,
-- ręka kart, wybór celu, stan legalności i komunikaty przyczynowe,
-- adapter pomiędzy `application/core` a prezentacją,
-- prosty feedback ruchu i zmiany stanu bez docelowych animacji,
-- reset i możliwość jawnego ustawienia seeda do testu.
-
-### Poza zakresem
-
-- finalna oprawa, audio i długie animacje akcji,
-- pełna obsługa klawiatury i osobny layout mobilny,
-- pełny mecz, obrona gracza, run i zapis postępu,
-- dodawanie kart poza mechanikami PRD 000.
-
-### Walidacja
-
-- Testy automatyczne: istniejące testy core oraz testy adaptera aplikacyjnego; bez dublowania logiki przez testy renderera.
+- Testy automatyczne: Vitest dla punktacji, zwycięstwa, przełączania ról, dwóch talii, tasowania, statystyk, resetu i odtwarzalności.
 - Build: pełne `./scripts/verify.sh`.
-- Playtest: wymagany `$codex-flow-playtest` dla przygotowanego rzutu, alternatywnej ścieżki, nielegalnej karty, wyczerpania zegara i resetu z seedem na podstawowym desktopowym viewporcie.
-- Review: wymagane niezależne review rozdzielenia Phasera od reguł oraz obsługi stanu UI.
+- Playtest: niewymagany, ponieważ milestone nie zmienia widocznego przepływu gry.
+- Review: wymagane read-only review granic agregatu, niemutowalności i kanonicznego przepływu RNG.
 
 ### Zależności i ryzyka
 
-- Zależność: Milestone 1.
-- Ryzyko: przeciążenie informacją; priorytetem są posiadacz piłki, intencja, legalność i przyczyna zmiany.
-- Ryzyko: UI może maskować jedyną sensowną sekwencję; playtest musi jawnie sprawdzić alternatywę.
-- Ryzyko: animacje mogą spowalniać iteracje; ograniczyć je do krótkiego feedbacku.
+- Zależność: ukończony Milestone 3 i działający reducer posiadania.
+- Ryzyko: duplikacja RNG pomiędzy meczem i posiadaniem; stan losowości musi być przekazywany jednym kanonicznym strumieniem.
+- Ryzyko: refaktor talii może zepsuć PRD 000; zachować kompatybilny scenariusz referencyjny.
+- Ryzyko: dokładne liczby kart są balansem, nie kontraktem domenowym; nie kodować ich w reducerze.
 
-## Milestone 3: Walidacja hipotezy i gotowość do udostępnienia (`done`)
+## Milestone 5: Aktywna obrona i plany przeciwnika (`done`)
 
 ### Cel
 
-Ustabilizować pionowy przekrój, zautomatyzować krytyczny smoke test i zebrać dowody potrzebne do decyzji o dalszym rozwoju gameplayu.
+Zaimplementować czysty, deterministyczny silnik defensywnego posiadania, pięć mechanik odpowiedzi oraz jedną drużynę przeciwną z trzema ujawnianymi planami ofensywnymi.
 
 ### Hipoteza do zweryfikowania
 
-Pionowy przekrój jest zrozumiały, odtwarzalny i wystarczająco interesujący, aby uzasadnić projektowanie pełnego meczu zamiast przebudowy podstawowej pętli.
+Jawny plan i najbliższa akcja przeciwnika wraz z kartami o kompromisach tworzą co najmniej dwie sensowne odpowiedzi, zamiast oczywistego kontrsystemu albo zgadywania.
 
 ### Kryteria akceptacji
 
-- Playwright automatyzuje uruchomienie, co najmniej jedną legalną sekwencję, rzut, podsumowanie i reset.
-- Produkcyjny build działa pod `/HOOP-RUN/`; konsola i sieć nie pokazują blokujących błędów ani brakujących zasobów.
-- Playtest potwierdza pięć miar powodzenia z PRD albo dokumentuje konkretnie, które nie zostały spełnione.
-- Gracz może przed pierwszą akcją wskazać intencję obrony, a po rzucie odczytać przyczyny jego jakości.
-- Dwie sensowne sekwencje prowadzą do różnych stanów lub jakości, a gracz nie jest prowadzony jedyną legalną ścieżką.
-- Konfiguracja GitHub Actions buduje i przygotowuje artefakt Pages; faktyczne wdrożenie wymaga osobnej zgody na publikację.
-- Dokumentacja uruchomienia, walidacji i znanych ograniczeń odpowiada działającemu repozytorium.
+- `DefensePossessionState` rozróżnia plan całego posiadania, aktualny krok, zegar, ustawienie, krycie, przewagę przeciwnika, rękę, historię, RNG i rezultat.
+- Przeciwnik wybiera deterministycznie jeden z co najmniej trzech planów: `Pick & Roll`, `Drive & Kick` i `Quick Three` albo równoważnych zatwierdzonych danych.
+- Plan ujawnia nazwę i bieżącą akcję, ale nie przyszłe kroki.
+- Mechaniki `Pressure`, `Switch`, `Go Under`, `Help Defense` i `Double Team` mają typowane dane, legalność, koszt czasu, efekt i jawne ryzyko.
+- Legalna odpowiedź aktualizuje zegar, ustawienie, krycie, przewagę lub statusy oraz generuje przyczynowe zdarzenia.
+- Obrona może pogorszyć rzut, wymusić stratę albo doprowadzić do końca czasu; źle dobrana karta może obserwowalnie poprawić sytuację przeciwnika.
+- Żadna karta nie jest bezwarunkowo najlepszą odpowiedzią na wszystkie trzy plany.
+- Nielegalna odpowiedź nie zmienia stanu ani RNG i zwraca stabilny powód.
+- Rzut przeciwnika używa wspólnego modelu jakości oraz seedowanego rozstrzygnięcia.
+- AI nie odczytuje przyszłej ręki ani wyboru gracza i nie zmienia planu po fakcie bez jawnej reguły.
+
+### Zakres
+
+- typy, komendy, reducer i zdarzenia defensywnego posiadania,
+- pięć współdzielonych mechanik kart defensywnych,
+- definicje jednej drużyny i trzech planów jako dane,
+- dane kilku defensywnych intencji przeciwnika dla ofensywy gracza,
+- kontrakt jakości rzutu, straty i końca czasu,
+- deterministyczne testy dobrych, ryzykownych i nielegalnych odpowiedzi.
+
+### Poza zakresem
+
+- rendering, sterowanie i animacje obrony,
+- wielu przeciwników i adaptacyjne AI,
+- pełna symetria z ofensywą gracza,
+- zbiórki, kontry, faule i zmęczenie.
+
+### Walidacja
+
+- Testy automatyczne: Vitest dla planów, telegraphu, pięciu mechanik, legalności, kosztu czasu, jakości, straty, końca czasu, braku podglądu przyszłych decyzji i odtwarzalności.
+- Build: pełne `./scripts/verify.sh`.
+- Playtest: niewymagany, ponieważ milestone dostarcza headlessowe reguły i dane.
+- Review: wymagane read-only review reguł, kompromisów kart, AI, deterministyczności i granicy z Phaserem.
+
+### Zależności i ryzyka
+
+- Zależność: Milestone 4.
+- Ryzyko: macierz kontr może stać się kamień–papier–nożyce; każda akcja powinna dopuszczać więcej niż jedną kontekstową odpowiedź.
+- Ryzyko: zbyt ukryte skutki stworzą zgadywanie; każde rozstrzygnięcie musi publikować nazwane modyfikatory.
+- Ryzyko: mnożenie wyjątków per karta; mechaniki implementować wspólnie, a karty i plany składać jako dane.
+
+## Milestone 6: Grywalny pełny mecz (`done`)
+
+### Cel
+
+Połączyć agregat meczu, ofensywę i aktywną obronę w kompletny przepływ od `0:0` do zwycięstwa albo porażki obsługiwany myszą.
+
+### Hipoteza do zweryfikowania
+
+Gracz potrafi płynnie przełączać się między atakiem i obroną, rozumie wpływ kart na wynik oraz kończy pełny mecz bez ślepej uliczki i bez wrażenia utraty kontroli.
+
+### Kryteria akceptacji
+
+- Ekran zawsze pokazuje wynik, cel meczu, rolę `ATAK` albo `OBRONA`, numer posiadania, zegar oraz właściwą rękę.
+- Ofensywne posiadanie zachowuje czytelność i mechaniki PRD 000, ale korzysta z ręki dobranej z talii meczowej.
+- Defensywne posiadanie pokazuje plan, bieżącą akcję, wykonującego i legalne odpowiedzi bez ujawniania przyszłej sekwencji.
+- Gracz może rozegrać co najmniej dwa różne posiadania ofensywne i dwa defensywne wymagające różnych decyzji.
+- Po każdym posiadaniu podsumowanie pokazuje rezultat, zdobyte punkty, przyczyny, nowy wynik i następną rolę; przejście wymaga `Dalej`.
+- Mecz poprawnie kończy się zwycięstwem lub porażką, blokuje dalsze akcje i pokazuje wynik, podstawowe statystyki, rewanż z tym samym seedem oraz nowy mecz.
+- Rewanż z tym samym seedem i identycznymi decyzjami odtwarza przebieg i wynik bez przeładowania strony.
+- Widok nie polega wyłącznie na kolorze, nie ma blokujących błędów konsoli, brakujących zasobów ani ślepej uliczki.
+
+### Zakres
+
+- meczowa sesja aplikacyjna i model widoku,
+- integracja obu typów posiadań oraz cykli talii,
+- widoki ataku, obrony, podsumowania posiadania i podsumowania meczu,
+- wynik, rola, talie i statystyki w istniejącej scenie albo minimalnym zestawie scen,
+- sterowanie kartą, wykonującym, celem, `Dalej`, rewanżem i nowym seedem,
+- rozszerzenie mostu E2E wyłącznie o odczytowy snapshot pełnego meczu.
+
+### Poza zakresem
+
+- finalne animacje i audio,
+- osobny layout mobilny i pełne sterowanie klawiaturą,
+- zbiórki, kontry, run, nagrody i zapis postępu,
+- dodatkowe drużyny lub karty poza prototypowym minimum.
+
+### Walidacja
+
+- Testy automatyczne: istniejące testy core, testy sesji aplikacyjnej i deterministyczny scenariusz pełnego meczu.
+- Build: pełne `./scripts/verify.sh`.
+- Playtest: wymagany `$codex-flow-playtest` od `0:0` do końca meczu, obejmujący atak, obronę, różne ręce, `Dalej`, wynik, zakończenie i rewanż na dwóch viewportach desktopowych.
+- Review: wymagane niezależne review przepływu stanu, granic Phasera, legalności wejścia i czytelności obu ról.
+
+### Zależności i ryzyka
+
+- Zależność: Milestone 5.
+- Ryzyko: przeciążenie planszy wynikiem, planem i ręką; priorytet informacji zależy od aktualnej roli.
+- Ryzyko: długi playtest spowalnia iterację; automatyczne scenariusze mogą używać kontrolowanych seedów, ale kryterium grywalności wymaga pełnego meczu.
+- Ryzyko: istniejąca scena zakłada jedną sesję posiadania; integracja nie może przenieść reguł meczu do Phasera.
+
+## Milestone 7: Walidacja hipotezy pełnego meczu (`blocked`)
+
+### Cel
+
+Ustabilizować pełny mecz, zautomatyzować krytyczne ścieżki i zebrać dowody do decyzji, czy można projektować pierwszą pętlę runu.
+
+### Hipoteza do zweryfikowania
+
+Naprzemienne posiadania, wynik i dwie talie tworzą napięty mecz trwający około 8–12 minut, a aktywna obrona daje poczucie wpływu bez powtarzalności i zgadywania.
+
+### Kryteria akceptacji
+
+- Playwright automatyzuje co najmniej jeden wygrany i jeden przegrany mecz, zmianę ról, podsumowania, warunek zwycięstwa oraz rewanż.
+- Kontrolowane testy obejmują trzy plany przeciwnika, różne ręce obu talii, stratę, koniec czasu, rzut za 1 i rzut za 2.
+- Pełny mecz działa w produkcyjnym preview i po publikacji pod `/HOOP-RUN/` bez blokujących błędów konsoli, sieci lub zasobów.
+- Playtest potwierdza albo konkretnie obala wszystkie miary powodzenia PRD 001, w tym czas 8–12 minut i wpływ wyniku na końcowe decyzje.
+- Wykonano co najmniej jeden test z osobą, która wcześniej nie znała projektu, i zapisano obserwacje dotyczące roli, obrony, wyniku i chęci rewanżu.
+- Dokumentacja uruchomienia, reguł, walidacji, ograniczeń i wyniku bramki odpowiada działającemu repozytorium.
 - Niezależne review nie zawiera nierozwiązanych problemów blokujących.
 
 ### Zakres
 
-- konfiguracja Playwright i jeden stabilny scenariusz E2E,
-- poprawki czytelności oraz błędów odkrytych w playteście, bez nowych mechanik,
-- test produkcyjnej bazy i ładowania zasobów,
-- workflow GitHub Actions dla testów/builda oraz przygotowania GitHub Pages,
-- udokumentowanie wyniku hipotezy i bramki następnej decyzji.
+- stabilizacja i ograniczone poprawki problemów ujawnionych przez pełny playtest,
+- E2E wygranej, porażki i rewanżu,
+- kontrolowane seedy do scenariuszy planów i końcówek,
+- pomiar czasu oraz walidacja jakościowa aktywnej obrony,
+- dokument walidacji PRD 001 i decyzja bramki.
 
 ### Poza zakresem
 
-- publikacja bez jawnego polecenia użytkownika,
-- pełny mecz i system runu,
-- nowe karty, przeciwnicy i rozbudowane animacje,
-- przebudowa pętli wykraczająca poza problemy ujawnione przez PRD 000.
+- mapa runu, nagrody, draft, trening i metaprogresja,
+- wielu przeciwników i szeroka produkcja kart,
+- finalny balans, oprawa, audio i optymalizacja mobilna,
+- publikacja zmian bez osobnej zgody na commit i push.
 
 ### Walidacja
 
-- Testy automatyczne: `npm run test`, `npm run test:e2e` oraz test deterministycznego scenariusza referencyjnego.
-- Build: `npm run lint`, `npm run typecheck`, `npm run build`, pełne `./scripts/verify.sh`; walidacja workflow bez wykonywania pushu.
-- Playtest: wymagany pełny `$codex-flow-playtest` na produkcyjnym preview, obejmujący kryteria i miary powodzenia PRD 000 oraz co najmniej dwa istotne viewporty desktopowe.
+- Testy automatyczne: `npm run test`, `npm run test:e2e` oraz referencyjne scenariusze deterministyczne.
+- Build: pełne `./scripts/verify.sh` i weryfikacja artefaktu Pages.
+- Playtest: wymagany pełny `$codex-flow-playtest` dla wygranej i porażki na dwóch viewportach oraz udokumentowany test nowego gracza.
 - Review: wymagane końcowe read-only review diffu, testów, dowodów playtestu i zgodności dokumentacji.
 
 ### Zależności i ryzyka
 
-- Zależność: Milestone 2.
-- Ryzyko: automatyczny E2E może potwierdzić poprawność, ale nie frajdę; decyzja produktowa wymaga obserwacji playtestu.
-- Ryzyko: poprawki czytelności mogą przerodzić się w redesign; większą zmianę zaplanować osobno.
-- Ryzyko: pozytywny wewnętrzny playtest może nie reprezentować nowych graczy; zapisać ograniczenie dowodów.
+- Zależność: Milestone 6.
+- Ryzyko: automatyzacja potwierdza poprawność, ale nie napięcie; bramka wymaga obserwacji pełnego meczu.
+- Ryzyko: jeden przeciwnik może zawyżać powtarzalność; oceniać różnorodność planów, nie ilość zawartości.
+- Ryzyko: wynik wewnętrzny może nie reprezentować nowych graczy; test z osobą spoza projektu jest obowiązkowym dowodem jakościowym.
 
-## Bramka po PRD 000
+## Bramka po PRD 001
 
-Wynik z 2026-08-14: `proceed`. Wszystkie pięć miar zostało potwierdzonych w wewnętrznym playteście, a szczegóły i ograniczenia opisuje `docs/validation/prd-000-validation.md`. Następny zakres wymaga przyrostowego PRD pełnego meczu.
+Po ukończeniu Milestone 7 należy wybrać wynik:
 
-Po ukończeniu Milestone 3 należy wybrać jeden z wyników:
+1. `proceed` — pełny mecz utrzymuje napięcie i różnorodność; utworzyć przyrostowy PRD pierwszej pętli runu,
+2. `iterate` — mecz jest obiecujący, ale tempo, obrona albo talie wymagają ograniczonego PRD korekty,
+3. `rethink` — seria posiadań jest powtarzalna albo obrona nie daje poczucia wpływu; zatrzymać projektowanie runu.
 
-1. `proceed` — hipoteza potwierdzona; utworzyć przyrostowy PRD dla pełnego meczu,
-2. `iterate` — rdzeń obiecujący, ale konkretne miary nieprzechodzące; utworzyć ograniczony PRD korekty posiadania,
-3. `rethink` — sekwencje nie tworzą interesujących decyzji; zatrzymać rozwój runu i wrócić do modelu podstawowej pętli.
-
-Nie planować mapy runu, metaprogresji ani dużej produkcji zawartości przed tą bramką.
+Nie planować mapy runu, nagród, metaprogresji ani szerokiej produkcji zawartości przed tą bramką.
 
 ## Ukończone milestone'y
 
-- 2026-08-14 — Milestone 0: fundament TypeScript + Phaser + Vite, test, produkcyjny build `/HOOP-RUN/`, playtest i review zakończone bez problemów blokujących.
-- 2026-08-14 — Milestone 1: deterministyczny silnik posiadania, pięć mechanik kart, zegar, reakcja obrony, jakość rzutu, seedowany RNG i 14 testów domenowych zakończone bez problemów blokujących.
-- 2026-08-14 — Milestone 2: grywalne posiadanie 3 na 3, adapter aplikacyjny, wybór kart i celów, podsumowanie rzutu, reset z seedem oraz playtest wymaganych scenariuszy zakończone bez problemów blokujących.
-- 2026-08-14 — Milestone 3: Playwright, workflow przygotowujący artefakt Pages bez publikacji, walidacja pięciu miar PRD i bramka `proceed` zakończone bez problemów blokujących.
+Szczegółowy plan i walidacje PRD 000 znajdują się w `docs/archive/roadmap/prd-000.md`.
 
-Szczegóły starszych ukończonych milestone'ów będą przenoszone do `docs/archive/roadmap/`, gdy roadmapa będzie wymagała kompakcji.
+- 2026-08-14 — Milestone 0: fundament TypeScript + Phaser + Vite i build GitHub Pages (`done`).
+- 2026-08-14 — Milestone 1: deterministyczny silnik pojedynczego posiadania (`done`).
+- 2026-08-14 — Milestone 2: grywalne ofensywne posiadanie 3 na 3 (`done`).
+- 2026-08-14 — Milestone 3: E2E, walidacja PRD 000 i bramka `proceed` (`done`).

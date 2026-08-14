@@ -73,7 +73,10 @@ export interface ShotModifier {
     | "matchupContest"
     | "onBallPressure"
     | "createdOpenLook"
-    | "advantage";
+    | "advantage"
+    | "defensiveResponse"
+    | "opponentAdvantage"
+    | "exposedShooter";
   readonly value: number;
 }
 

@@ -69,6 +69,20 @@ describe("silnik posiadania", () => {
     expect(JSON.stringify(state)).toBe(snapshot);
   });
 
+  it("zagranie usuwa tylko jedną kopię tej samej karty z ręki", () => {
+    const state = resetPossession(
+      { ...PROTOTYPE_SETUP, hand: ["pass", "pass", "shot"] },
+      42,
+    );
+    const result = playAccepted(state, {
+      cardId: "pass",
+      actorId: "offense-pg",
+      targetId: "offense-sg",
+    });
+
+    expect(result.hand).toEqual(["pass", "shot"]);
+  });
+
   it("pozwala skontrować presję sekwencją Screen → Drive → Kick Out → Shot", () => {
     let state = createPrototypePossession(42);
     state = playAccepted(state, {

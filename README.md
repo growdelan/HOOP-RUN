@@ -2,9 +2,9 @@
 
 Taktyczny roguelite deckbuilder o koszykówce 3 na 3, projektowany do uruchamiania bezpośrednio w przeglądarce. Projekt korzysta z TypeScriptu, Phasera i Vite, a build statyczny jest konfigurowany dla GitHub Pages.
 
-Repozytorium zawiera grywalny prototyp pojedynczego posiadania. Gracz wybiera karty, wykonawców i cele na taktycznej planszy, odczytuje zamiar obrony oraz porównuje jakość przygotowanego i natychmiastowego rzutu. Zakres rozwoju opisują `spec.md` i `ROADMAP.md`.
+Repozytorium zawiera grywalny prototyp pełnego meczu. Gracz naprzemiennie atakuje i aktywnie broni, korzysta z osobnych talii, odczytuje intencje i plany przeciwnika oraz gra do 11 punktów z przewagą 2 i limitem 15. Zakres rozwoju opisują `spec.md` i `ROADMAP.md`.
 
-Wynik walidacji pierwszego pionowego przekroju i ograniczenia dowodów opisuje `docs/validation/prd-000-validation.md`.
+Wynik walidacji pierwszego pionowego przekroju opisuje `docs/validation/prd-000-validation.md`. Bieżące dowody i brakujące warunki bramki pełnego meczu opisuje `docs/validation/prd-001-validation.md`.
 
 ## Wymagania
 
@@ -26,7 +26,9 @@ Vite pokaże lokalny adres serwera. Gra jest budowana z bazą `/HOOP-RUN/`, zgod
 1. Kliknij kartę oznaczoną jako `DOSTĘPNA`.
 2. Kliknij zawodnika z zielonym obramowaniem, aby wskazać wykonawcę.
 3. Dla kart wymagających celu kliknij zawodnika z żółtym obramowaniem.
-4. Przycisk `RESET` rozpoczyna nowe posiadanie z tym samym seedem; przyciski `−` i `+` zmieniają seed oraz resetują stan.
+4. W obronie kliknij kartę odpowiedzi, a następnie zawodnika z żółtym obramowaniem.
+5. Po każdym posiadaniu kliknij `DALEJ`, aby przełączyć rolę.
+6. Po zakończeniu meczu wybierz `REWANŻ` z tym samym seedem albo `NOWY MECZ`.
 
 Seed można ustawić bezpośrednio w adresie, na przykład `?seed=42`. Kontrolowany scenariusz końca czasu jest dostępny przez `?seed=42&clock=9`; parametr `clock` służy do testowania prototypu i domyślnie wynosi `14`.
 
@@ -92,7 +94,7 @@ npm run build
 npm run test:e2e
 ```
 
-Test E2E buduje aplikację, uruchamia produkcyjny preview pod `/HOOP-RUN/` i automatyzuje przygotowany rzut oraz reset w Chromium.
+Testy E2E budują aplikację, uruchamiają produkcyjny preview pod `/HOOP-RUN/` i automatyzują prawdziwe kliknięcia w canvas dla ataku, obrony, podsumowań, pełnego zwycięstwa, pełnej porażki i rewanżu.
 
 ## CI i GitHub Pages
 
@@ -103,7 +105,7 @@ Opublikowana gra jest dostępna pod adresem `https://growdelan.github.io/HOOP-RU
 ## Znane ograniczenia prototypu
 
 - Walidacja hipotezy ma charakter wewnętrzny; nie zastępuje testów z nowymi graczami.
-- Interfejs jest przeznaczony dla przeglądarek desktopowych; osobny layout mobilny pozostaje poza PRD 000.
+- Interfejs jest przeznaczony dla przeglądarek desktopowych; osobny layout mobilny pozostaje poza PRD 001.
 - Produkcyjny bundle Phasera przekracza domyślny próg ostrzeżenia Vite, ale ładuje się poprawnie i nie blokuje pionowego przekroju.
 
 ## Struktura aplikacji
@@ -112,7 +114,7 @@ Opublikowana gra jest dostępna pod adresem `https://growdelan.github.io/HOOP-RU
 src/
 ├── core/          # czyste, deterministyczne reguły gry
 ├── content/       # dane kart, zawodników i scenariuszy
-├── application/   # sesja posiadania i model widoku
+├── application/   # sesje posiadania, pełnego meczu i modele widoku
 ├── presentation/  # Phaser, plansza, karty i wejście myszą
 └── platform/      # konfiguracja zależna od przeglądarki/hostingu
 tests/              # testy automatyczne poza kodem aplikacji
