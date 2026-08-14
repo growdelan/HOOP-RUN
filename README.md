@@ -94,9 +94,11 @@ npm run test:e2e
 
 Test E2E buduje aplikację, uruchamia produkcyjny preview pod `/HOOP-RUN/` i automatyzuje przygotowany rzut oraz reset w Chromium.
 
-## CI i artefakt GitHub Pages
+## CI i GitHub Pages
 
-Workflow `.github/workflows/verify-pages.yml` uruchamia pełne `./scripts/verify.sh`, a następnie przygotowuje katalog `dist` jako artefakt GitHub Pages. Nie zawiera kroku `deploy-pages`, więc sam workflow nie publikuje strony. Wdrożenie wymaga osobnej, jawnej decyzji i zmiany workflow.
+Workflow `.github/workflows/verify-pages.yml` uruchamia pełne `./scripts/verify.sh`, przygotowuje katalog `dist` jako artefakt GitHub Pages, a po sukcesie publikuje go z gałęzi `main`. Pull requesty przechodzą walidację i tworzą artefakt, ale nie uruchamiają joba wdrożeniowego.
+
+Opublikowana gra jest dostępna pod adresem `https://growdelan.github.io/HOOP-RUN/`.
 
 ## Znane ograniczenia prototypu
 
@@ -119,4 +121,4 @@ public/             # statyczne zasoby kopiowane bez przetwarzania
 
 ## Zasady publikacji
 
-Zakończenie implementacji nie oznacza zgody na commit ani push. Publikacja następuje wyłącznie na jawne polecenie użytkownika.
+Zakończenie implementacji nie oznacza zgody na commit ani push. Po jawnym wypchnięciu zmiany na `main` skonfigurowany workflow automatycznie publikuje zweryfikowany build na GitHub Pages.

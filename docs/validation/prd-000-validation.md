@@ -26,7 +26,7 @@ Wewnętrzny playtest potwierdził hipotezę, że kolejność kart zależna od st
 - Produkcyjny preview działał pod `/HOOP-RUN/`; HTML, JavaScript i CSS zwróciły HTTP 200.
 - Konsola przeglądarki nie zawierała ostrzeżeń ani błędów.
 - Viewport 1024×768 miał `scrollWidth = clientWidth` i `scrollHeight = clientHeight`; canvas miał 976×549 px.
-- Workflow CI ma wyłącznie uprawnienie odczytu, weryfikuje projekt i przygotowuje `dist` przez `upload-pages-artifact`; nie zawiera joba publikującego.
+- Job weryfikacyjny CI ma wyłącznie uprawnienie odczytu i przygotowuje `dist` przez `upload-pages-artifact`. Osobny job wdrożeniowy działa tylko dla `main`, zależy od zaliczonej walidacji i ma minimalne uprawnienia `pages: write` oraz `id-token: write`.
 
 ## Znane ograniczenia
 

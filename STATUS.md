@@ -7,7 +7,7 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 - Milestone: `Milestone 3: Walidacja hipotezy i gotowość do udostępnienia`.
 - Status: `done`.
 - Bramka PRD 000: `proceed` na podstawie wewnętrznego playtestu.
-- Poza ukończonym zakresem: publikacja, nowe mechaniki, pełny mecz, finalna oprawa, run i zapis postępu.
+- Poza ukończonym zakresem: nowe mechaniki, pełny mecz, finalna oprawa, run i zapis postępu.
 
 ## Co zrobiono
 
@@ -25,13 +25,13 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 - Dodano parametry URL `seed` i testowy `clock`, sterowanie myszą oraz dokumentację rzeczywistego przepływu w README.
 - Dodano Playwright E2E wykonujący rzeczywiste kliknięcia w canvas dla nielegalnej akcji, przygotowanego rzutu, podsumowania i resetu.
 - Dodano ograniczony do `e2e=1`, tylko do odczytu snapshot modelu widoku używany przez asercje testu przeglądarkowego.
-- Dodano workflow GitHub Actions, który uruchamia pełną walidację i przygotowuje artefakt Pages bez publikacji.
+- Dodano workflow GitHub Actions, który uruchamia pełną walidację, przygotowuje artefakt i publikuje zweryfikowany build z `main` na GitHub Pages.
 - Udokumentowano pięć miar PRD 000 i decyzję bramki `proceed` w `docs/validation/prd-000-validation.md`.
 
 ## Co jest następne
 
 - Utworzyć przyrostowy PRD pełnego meczu przez `$codex-flow-create-prd` przed dalszą implementacją gameplayu.
-- Nie projektować jeszcze mapy runu ani metaprogresji i nie dodawać joba wdrożeniowego bez jawnej decyzji.
+- Nie projektować jeszcze mapy runu ani metaprogresji. Kolejne pushe wymagają jawnego polecenia, mimo że zaakceptowany workflow automatyzuje wdrożenie zawartości `main`.
 
 ## Ostatnia walidacja
 

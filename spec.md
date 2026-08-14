@@ -196,7 +196,7 @@ Phaser nie importuje niejawnych mutowalnych singletonów domenowych. `core` nie 
 
 - Decyzja: pierwszy cel publikacji to GitHub Pages pod `/HOOP-RUN/`, bez backendu.
 - Uzasadnienie: prototyp ma być dostępny bez instalacji i serwera aplikacyjnego.
-- Konsekwencje: ścieżki zasobów i build są testowane z niekorzeniową bazą; workflow wdrożeniowy nie oznacza automatycznej zgody na push.
+- Konsekwencje: ścieżki zasobów i build są testowane z niekorzeniową bazą; push do `main` uruchamia wdrożenie dopiero po pełnej walidacji i przygotowaniu artefaktu Pages. Zgoda na automatyczne wdrożenie nie oznacza zgody na wykonywanie przyszłych pushów.
 - Dotyczy: PRD 000, milestone'y 0 i 3.
 
 ### Deterministyczny silnik zasad
