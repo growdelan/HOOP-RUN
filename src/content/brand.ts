@@ -1,0 +1,2 @@
+export const PRODUCT_NAME = "HOOP-RUN";
+export const PRODUCT_TAGLINE = "BUILD THE PLAY. BREAK THE DEFENSE.";

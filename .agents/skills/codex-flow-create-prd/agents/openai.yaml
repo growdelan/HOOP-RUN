@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Flow: Utwórz PRD gry"
+  short_description: "Przeprowadź wywiad i zapisz PRD gry"
+  default_prompt: "Użyj $codex-flow-create-prd, aby przeprowadzić ze mną wywiad i utworzyć PRD dla HOOP-RUN."

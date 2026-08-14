@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Flow: Review HOOP-RUN"
+  short_description: "Przeprowadź niezależne review zmian gry"
+  default_prompt: "Użyj $codex-flow-review, aby niezależnie ocenić ostatni diff HOOP-RUN bez modyfikowania plików."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Flow: Playtest HOOP-RUN"
+  short_description: "Sprawdź grę w prawdziwej przeglądarce"
+  default_prompt: "Użyj $codex-flow-playtest, aby sprawdzić bieżący scenariusz HOOP-RUN w przeglądarce i udokumentować wynik."
