@@ -425,3 +425,7 @@ Po implementacji i playteście pełnego meczu należy wybrać jeden z wyników:
 3. `rethink` — seria posiadań jest powtarzalna albo obrona nie daje poczucia wpływu; nie rozpoczynać systemów runu.
 
 Pozytywny wynik nie zatwierdza automatycznie dużej produkcji kart, przeciwników ani metaprogresji. Zakres runu wymaga osobnego PRD.
+
+### Wynik bramki
+
+Decyzja z 2026-08-14: `proceed`. Zewnętrzny pierwszy mecz osoby wcześniej nieznającej projektu trwał 10 minut, zakończył się 8:11, a tester po pisemnym objaśnieniu zasad rozumiał role i decyzje oraz chciał rewanżu. Szczegółowe dowody i przeniesione ryzyko onboardingu znajdują się w `docs/validation/prd-001-validation.md`.

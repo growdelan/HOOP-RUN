@@ -5,10 +5,11 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 ## Aktualny zakres
 
 - Milestone: `Milestone 7: Walidacja hipotezy pełnego meczu`.
-- Status: `in_progress`; po wyniku `0:11` wdrożono lokalną korektę balansu, która wymaga powtórnego pełnego meczu gracza.
+- Status: `done`; test zewnętrzny zakończył bramkę PRD 001 decyzją `proceed`.
 - Bramka PRD 000: `proceed` na podstawie wewnętrznego playtestu.
-- Aktywny zakres: `prd/001-full-match.md`, realizowany kolejno przez Milestone'y 4–7.
-- Poza aktywnym zakresem: zbiórki, kontry, faule, wielu przeciwników, finalna oprawa, run, metaprogresja i zapis postępu.
+- Bramka PRD 001: `proceed` na podstawie automatycznych, wewnętrznych i zewnętrznych dowodów.
+- Aktywny zakres implementacyjny: brak; następny zakres wymaga przyrostowego PRD pierwszej pętli runu.
+- Poza zatwierdzonym zakresem: zbiórki, kontry, faule, wielu przeciwników, finalna oprawa, metaprogresja i zapis postępu.
 
 ## Co zrobiono
 
@@ -38,9 +39,9 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 
 ## Co jest następne
 
-- Powtórzyć pełny mecz na skorygowanym balansie i ocenić możliwość świadomego zdobywania punktów oraz zatrzymywania rywala.
-- Po pozytywnym teście właściciela przeprowadzić test osoby nieznającej projektu.
-- Nie projektować mapy runu ani metaprogresji przed bramką Milestone 7. Commit i push nadal wymagają jawnego polecenia.
+- Przeprowadzić wywiad i utworzyć przyrostowy PRD pierwszej pętli runu.
+- Nie implementować mapy, nagród ani progresji przed zaplanowaniem nowego PRD.
+- Commit i push nadal wymagają jawnego polecenia.
 
 ## Ostatnia walidacja
 
@@ -67,20 +68,19 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 | 2026-08-14 | Pierwszy ręczny pełny mecz, publiczny build `7ae3ce2`, seed 42 | playtest właściciela projektu | częściowo zaliczona: provisional `iterate` | Mecz ukończono w około 10 minut z porażką 2:11. Przepływ działa, ale brak wyjaśnień skutków kart wymuszał częściowo ślepe wybory; z tego powodu nie było chęci rewanżu. |
 | 2026-08-14 | Iteracja czytelności, wynik `0:11` i korekta balansu | `./scripts/verify.sh`, audyt 100 seedów, playtest seeda 42 w 1280×720 i 1024×768 | gotowa do retestu | 68 testów i 4 E2E przeszły. Strategia kontekstowa wygrała 82/100 seedów; seed 42 `12:6`. `Screen → Drive` bez pomocy daje 80%, `Switch` `-5 pp`, konsola czysta. |
 | 2026-08-14 | Wizualizacja zasłony | `./scripts/verify.sh` i `$codex-flow-playtest`, seed 42, 1280×720 i 1024×768 | zaliczona | 68 testów i 4 E2E przeszły. Zasłaniający podchodzi do celu, pozostaje na pierwszym planie i ma etykietę `ZASŁONA`; `Drive` przenosi kozłującego do paint. Brak błędów konsoli i overflow. |
+| 2026-08-14 | Zewnętrzny playtest i bramka PRD 001 | pierwszy pełny mecz osoby wcześniej nieznającej projektu | zaliczona: `proceed` | Mecz trwał 10 minut i zakończył się 8:11. Po pisemnym objaśnieniu zasad tester rozumiał role i decyzje oraz chciał rewanżu. |
 
 ## Blokery i ryzyka
 
-- Automatyczny audyt potwierdza przewagę właściwych decyzji, ale odczuwalna sprawczość nadal wymaga ręcznego pełnego meczu.
-- Nadal wymagany jest test osoby wcześniej nieznającej projektu; pierwszy ręczny mecz właściciela nie zastępuje tego dowodu.
+- Pomyślny test zewnętrzny odbył się po pisemnym objaśnieniu zasad; samodzielność onboardingu należy ponownie sprawdzić po dodaniu przyszłego tutorialu.
 - Startowe talie prototypu mają po 10 kart, po dwie kopie każdej z pięciu mechanik; wartości pozostają danymi balansowymi.
 - Prototypowa macierz efektów kart została dostrojona po wyniku `0:11`; wartości nadal pozostają danymi balansowymi.
 - Produkcyjny bundle zawierający Phaser ma około 1,38 MB przed kompresją i 359 KB gzip; Vite zgłasza ostrzeżenie rozmiaru. Optymalizować dopiero na podstawie pomiaru, nie przed pierwszym gameplayem.
 - `actions/configure-pages@v5` zgłasza nieblokującą adnotację o wewnętrznym przejściu z Node.js 20 na Node.js 24; workflow i deployment przechodzą.
-- Przed bramką PRD 001 wymagany jest co najmniej jeden pełny test z osobą nieznającą projektu.
 
 ## Handoff
 
-- Najkrótsze streszczenie: PRD 000 oraz milestone'y 4–6 PRD 001 są ukończone; grywalny pełny mecz działa lokalnie, a Milestone 7 zbiera automatyczne i jakościowe dowody do bramki.
+- Najkrótsze streszczenie: PRD 000 i PRD 001 są ukończone z decyzjami `proceed`; grywalny pełny mecz przeszedł test zewnętrzny 8:11 w 10 minut i uzasadnia zaprojektowanie pierwszej pętli runu.
 - Decyzje, których nie wolno zgubić: do 11, przewaga 2, limit 15; punktacja 1/2; ścisła naprzemienność; osobne utrzymujące stan talie; `Dalej` po każdym posiadaniu; jeden kanoniczny RNG; Phaser tylko prezentuje model widoku.
-- Pliki do przeczytania jako pierwsze: `STATUS.md`, Milestone 7 w `ROADMAP.md`, `docs/spec/full-match.md` i `prd/001-full-match.md`.
-- Następny bezpieczny krok: pełny ręczny mecz na skorygowanym balansie, następnie test nowego gracza i decyzja bramki PRD 001.
+- Pliki do przeczytania jako pierwsze: `STATUS.md`, wynik bramki w `docs/validation/prd-001-validation.md` oraz ukończone `prd/001-full-match.md`.
+- Następny bezpieczny krok: wywiad produktowy i przyrostowy PRD pierwszej pętli runu.

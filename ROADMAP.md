@@ -1,12 +1,12 @@
 # Roadmapa HOOP-RUN
 
-Roadmapa obejmuje ukończone `prd/000-initial-prd.md` i aktywne `prd/001-full-match.md`. Dozwolone statusy: `planned`, `in_progress`, `done`, `blocked`.
+Roadmapa obejmuje ukończone `prd/000-initial-prd.md` i `prd/001-full-match.md`. Dozwolone statusy: `planned`, `in_progress`, `done`, `blocked`.
 
 Milestone można oznaczyć jako `done`, gdy wszystkie kryteria akceptacji są spełnione, wskazana walidacja i wymagany playtest przeszły, dokumentacja odpowiada faktom, a problemy blokujące z wymaganego review zostały rozwiązane.
 
 ## Aktualna kolejność
 
-Milestone'y PRD 001 wykonuje się kolejno: `4 → 5 → 6 → 7`.
+Milestone'y PRD 001 wykonano kolejno: `4 → 5 → 6 → 7`.
 
 - Milestone 4 buduje deterministyczny agregat meczu i cykl dwóch talii.
 - Milestone 5 dostarcza headlessowy silnik aktywnej obrony oraz jednego przeciwnika.
@@ -170,7 +170,7 @@ Gracz potrafi płynnie przełączać się między atakiem i obroną, rozumie wp�
 - Ryzyko: długi playtest spowalnia iterację; automatyczne scenariusze mogą używać kontrolowanych seedów, ale kryterium grywalności wymaga pełnego meczu.
 - Ryzyko: istniejąca scena zakłada jedną sesję posiadania; integracja nie może przenieść reguł meczu do Phasera.
 
-## Milestone 7: Walidacja hipotezy pełnego meczu (`in_progress`)
+## Milestone 7: Walidacja hipotezy pełnego meczu (`done`)
 
 ### Cel
 
@@ -237,3 +237,7 @@ Szczegółowy plan i walidacje PRD 000 znajdują się w `docs/archive/roadmap/pr
 - 2026-08-14 — Milestone 1: deterministyczny silnik pojedynczego posiadania (`done`).
 - 2026-08-14 — Milestone 2: grywalne ofensywne posiadanie 3 na 3 (`done`).
 - 2026-08-14 — Milestone 3: E2E, walidacja PRD 000 i bramka `proceed` (`done`).
+- 2026-08-14 — Milestone 4: deterministyczny szkielet meczu i talii (`done`).
+- 2026-08-14 — Milestone 5: aktywna obrona i pierwszy przeciwnik (`done`).
+- 2026-08-14 — Milestone 6: grywalny pełny mecz end-to-end (`done`).
+- 2026-08-14 — Milestone 7: walidacja pełnego meczu i bramka PRD 001 `proceed` (`done`).

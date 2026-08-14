@@ -4,21 +4,21 @@
 
 - Data walidacji lokalnej: 2026-08-14.
 - Zakres: pełny mecz 3 na 3 od `0:0` do zwycięstwa albo porażki.
-- Stan decyzji: `iterate`, korekta gotowa do ponownego testu — po wyniku `0:11` właściwe wejście po zasłonie otrzymało otwarte wykończenie, a wyspecjalizowane kontry obronne zostały wzmocnione. Automatyczny audyt potwierdza sprawczość, ale nie zastępuje pełnego meczu gracza.
-- Niedozwolony następny zakres: mapa runu, nagrody i metaprogresja pozostają wstrzymane do decyzji `proceed`, `iterate` albo `rethink`.
+- Stan decyzji: `proceed` — pełny mecz utrzymuje zakładany czas, pozwala nowemu graczowi rozegrać konkurencyjne spotkanie i zachęca do rewanżu.
+- Dozwolony następny krok: osobny przyrostowy PRD pierwszej pętli runu; decyzja nie zatwierdza automatycznie szerokiej produkcji kart, przeciwników ani metaprogresji.
 
 ## Wyniki miar powodzenia
 
 | Miara z PRD 001 | Stan | Dowód / brakujący dowód |
 |---|---|---|
-| Typowy mecz trwa 8–12 minut. | potwierdzona wewnętrznie | Pierwszy ręczny pełny mecz trwał około 10 minut. Wymagane jest jeszcze potwierdzenie na osobie wcześniej nieznającej projektu. |
-| Gracz rozumie zmianę roli i wyniku. | potwierdzona funkcjonalnie, jakościowo nierozstrzygnięta | Nagłówek stale pokazuje `ATAK`/`OBRONA`, wynik i numer posiadania, a obowiązkowe podsumowanie pokazuje punkty i następną rolę. Wymagana obserwacja nowego gracza. |
-| Wynik wpływa na wybór rzutu za 1 albo 2 w końcówce. | niepotwierdzona | W meczu zakończonym 2:11 decyzje były podejmowane częściowo na ślepo, ponieważ interfejs nie wyjaśniał skutków kart; nie dało się świadomie uzależnić strategii od wyniku. |
+| Typowy mecz trwa 8–12 minut. | potwierdzona | Zewnętrzny pierwszy mecz trwał 10 minut; wcześniejszy ręczny mecz właściciela również około 10 minut. |
+| Gracz rozumie zmianę roli i wyniku. | potwierdzona | Po pisemnym objaśnieniu zasad nowy tester rozumiał role i podejmowane decyzje; interfejs stale pokazuje rolę, wynik i podsumowanie zmiany posiadania. |
+| Wynik wpływa na wybór rzutu za 1 albo 2 w końcówce. | potwierdzona z ryzykiem onboardingowym | Wynik 8:11 stworzył konkurencyjną końcówkę, a tester deklarował rozumienie decyzji po pisemnym objaśnieniu zasad. Samodzielne odkrycie tej zależności pozostaje tematem kolejnego testu tutorialu. |
 | Co najmniej dwa ataki wymagają różnych sekwencji. | potwierdzona wewnętrznie | Pełny playtest seeda 42 pokazał osiem różnych rąk ofensywnych; intencje obrony i dostępne karty zmieniały możliwe przygotowanie rzutu. |
 | Co najmniej dwie obrony wymagają różnych odpowiedzi. | potwierdzona wewnętrznie | W jednym pełnym meczu wystąpiły `Pick & Roll`, `Drive & Kick` i `Quick Three`; macierz kart odróżnia zasłonę, wejście, podanie i rzut. |
-| Gracz umie wskazać wpływ decyzji defensywnej. | gotowa do ponownego testu | `Switch` na Screen pokazuje i daje `-5 pp`, a `Help Defense` na Drive `-10 pp`; pozostaje potwierdzić odczuwalną sprawczość w ręcznym meczu. |
+| Gracz umie wskazać wpływ decyzji defensywnej. | potwierdzona | Nowy tester rozumiał podejmowane decyzje po objaśnieniu zasad; `Switch` na Screen pokazuje `-5 pp`, a `Help Defense` na Drive `-10 pp`. |
 | Porażka jest wyjaśnialna bez ukrytego bonusu AI. | potwierdzona technicznie | Przeciwnik używa jawnego planu i bieżącej akcji, wspólnego modelu jakości oraz jednego seedowanego RNG; testy nie wykazały podglądu przyszłej ręki ani decyzji. |
-| Po meczu istnieje chęć rewanżu lub zmiany strategii. | niepotwierdzona | Drugi mecz po poprawie informacji zakończył się `0:11`; brak realnej możliwości wygrania lub zatrzymania rywala nadal blokuje motywację do kolejnej próby. |
+| Po meczu istnieje chęć rewanżu lub zmiany strategii. | potwierdzona | Po porażce 8:11 nowy tester chciał rozegrać rewanż. |
 
 ## Dowody lokalne
 
@@ -32,12 +32,14 @@
 - Lokalna iteracja pokazuje przed wyborem zmianę `Advantage`, wpływ na rzut w punktach procentowych, szansę straty, odsłonięcie zawodnika oraz aktualny procent, kategorię i wartość `Shot`. Playtest seeda 7 potwierdził czytelne porównanie odpowiedzi na `Screen` w viewportach 1280×720 i 1024×768.
 - Powtórny ręczny mecz po opublikowaniu prognoz zakończył się `0:11`. Gracz nadal nie był w stanie wygrać ani skutecznie bronić; wcześniejsza analiza wykazała również przypadek, w którym zamierzona kontra `Drive` miała niższą oczekiwaną wartość punktową niż natychmiastowy `Shot`.
 - Po korekcie `Screen → Drive` przeciw `Deny Perimeter` zmienia prognozę z 36% za 2 na 80% za 1 i tworzy jawne otwarte wejście. Strategia oparta na intencjach wygrała 82/100 seedów, przegrała 18/100, a seed 42 zakończyła `12:6`; słabszy atak wygrał tylko 44/100. Produkcyjny playtest 1280×720 i 1024×768 był czytelny i bez błędów konsoli.
+- Osoba wcześniej nieznająca projektu rozegrała po pisemnym objaśnieniu zasad pełny pierwszy mecz w 10 minut, przegrała 8:11, rozumiała role i decyzje oraz chciała rewanżu.
 
-## Brakujące dowody obowiązkowe
+## Decyzja bramki
 
-1. Powtórny ręczny pełny mecz potwierdzający, że właściwe odczytanie intencji daje realną szansę na wyrównany wynik lub zwycięstwo.
-2. Test z co najmniej jedną osobą, która wcześniej nie znała projektu, obejmujący pomiar czasu, rozpoznanie roli, rozumienie obrony, wpływ wyniku i chęć rewanżu.
-3. Po korekcie i testach ostateczny wybór bramki `proceed`, `iterate` albo `rethink`.
+- Wynik: `proceed`.
+- Uzasadnienie: mechanika pełnego meczu działa technicznie, mieści się w czasie 8–12 minut, właściwe decyzje dają mierzalną przewagę, a nowy gracz rozegrał konkurencyjny mecz i chciał rewanżu.
+- Ryzyko przeniesione: test korzystał z pisemnego objaśnienia zasad, dlatego przyszły onboarding lub tutorial musi zostać zweryfikowany bez prowadzenia przez optymalne sekwencje.
+- Następny dozwolony zakres: przygotowanie przyrostowego PRD pierwszej pętli runu.
 
 ## Scenariusz testu nowego gracza
 

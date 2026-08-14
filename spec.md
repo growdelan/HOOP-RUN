@@ -31,11 +31,13 @@ Potwierdzona hipoteza PRD 000:
 
 > Sekwencja kart zależna od stanu boiska i zamiaru obrony tworzy czytelne oraz satysfakcjonujące posiadanie, które zachęca do sprawdzenia innej kolejności decyzji.
 
-Aktywny zakres PRD 001 rozszerza tę bazę do jednego kompletnego meczu 3 na 3: wynik `0:0`, ściśle naprzemienne posiadania, aktywny atak i uproszczona aktywna obrona, osobne talie obu ról oraz zwycięstwo do 11 punktów z przewagą 2 i limitem 15. Szczegółowy kontrakt znajduje się w `docs/spec/full-match.md`.
+Ukończony zakres PRD 001 rozszerza tę bazę do jednego kompletnego meczu 3 na 3: wynik `0:0`, ściśle naprzemienne posiadania, aktywny atak i uproszczona aktywna obrona, osobne talie obu ról oraz zwycięstwo do 11 punktów z przewagą 2 i limitem 15. Szczegółowy kontrakt znajduje się w `docs/spec/full-match.md`.
 
 Główna hipoteza PRD 001:
 
 > Seria naprzemiennych posiadań ofensywnych i defensywnych, połączona rzeczywistym wynikiem, tworzy napięty mecz trwający około 8–12 minut bez popadania w powtarzalność.
+
+Bramka PRD 001 ma wynik `proceed`: zewnętrzny pierwszy mecz trwał 10 minut, zakończył się 8:11, a tester rozumiał decyzje po pisemnym objaśnieniu zasad i chciał rewanżu. Kolejny zakres wymaga osobnego PRD pierwszej pętli runu.
 
 ## Poza aktualnym zakresem
 
@@ -304,13 +306,13 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 
 Poniższe pytania balansowe nie blokują rozpoczęcia Milestone 4, o ile implementacja pozostawia je w danych i nie utrwala niezatwierdzonych wartości w mechanice:
 
-- TODO przed ukończeniem Milestone 4: dobrać rozmiary talii i liczbę kopii oraz zdefiniować test, że ręka nie pozostawia gracza bez legalnej decyzji.
+- Przyjęto w Milestone 4: startowe talie mają po 10 kart, po dwie kopie każdej mechaniki, a deterministyczne dobieranie gwarantuje minimalną legalną ścieżkę ukończenia posiadania.
 - Przyjęto do playtestu prototypową macierz efektów pięciu mechanik defensywnych; wartości pozostają balansem w danych.
 - Przyjęto plany `Pick & Roll`, `Drive & Kick`, `Quick Three` oraz trzy intencje defensywne pierwszego przeciwnika.
 - Przyjęto po pierwszym pełnym playteście: karty pokazują dokładny przewidywany efekt liczbowy dla bieżącego stanu, a `Shot` także aktualną kategorię i procent trafienia.
 - Przyjęto po audycie balansu Milestone 7: `Screen → Drive` bez pomocy tworzy otwarte wykończenie, `Switch` daje `5 pp` contestu na zasłonie, a `Help Defense` `10 pp` contestu na wejściu; są to strojalne wartości prototypu.
-- TODO przed ukończeniem Milestone 7: wybrać statystyki podsumowania i referencyjne seedy wygranej, porażki, wyrównanej końcówki oraz wszystkich planów.
-- TODO przed ukończeniem Milestone 7: zweryfikować, czy i jak aktualny wynik wpływa na wybór planu AI; AI nie może otrzymać ukrytej wiedzy ani bonusu.
+- Przyjęto w Milestone 7: podsumowanie pokazuje posiadania, trafienia, pudła, straty i końce czasu; seedy 2 i 42 zabezpieczają automatyczne ścieżki zwycięstwa i porażki, a audyt 100 seedów mierzy balans strategii.
+- Przyjęto w Milestone 7: pierwszy przeciwnik nie zmienia planu na podstawie wyniku i nie otrzymuje ukrytej wiedzy ani bonusu; adaptację do wyniku można rozważyć dopiero w osobnym zakresie zawartości AI.
 - TODO po playteście stref: zatwierdzić albo zmienić topologię boiska.
 - Przyjęto dla prototypu: informacja o rzucie pokazuje jednocześnie kategorię i procent; dalsze uproszczenie zależy od testu nowego gracza.
 - TODO przed runem: ustalić relację kapitana, trenera, archetypu drużyny i draftu zawodników.
