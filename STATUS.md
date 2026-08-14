@@ -48,11 +48,13 @@ Ten plik jest krótką pamięcią operacyjną między sesjami. Zapisuj tylko inf
 | 2026-08-14 | Milestone 3 | `./scripts/verify.sh` | zaliczona | Lint, typecheck, 25 testów Vitest, produkcyjny build `/HOOP-RUN/` i Playwright E2E przeszły. |
 | 2026-08-14 | Playtest i bramka PRD 000 | `$codex-flow-playtest`, seed 42, 1440×900 i 1024×768 | zaliczona: `proceed` | Natychmiastowy rzut dał `Contested 42`, `Pass → Shot` dał `Decent 58`, a przygotowany rzut `Perfect 95`; cztery karty były początkowo legalne, konsola czysta, zasoby 200 i brak overflow. Dowód jest wewnętrzny. |
 | 2026-08-14 | Review Milestone 3 | `$codex-flow-review` | zaliczona | Brak problemów krytycznych, ważnych i drobnych; E2E, most testowy, workflow Pages, zakres i dokumentacja są zgodne z milestone'em. |
+| 2026-08-14 | GitHub Pages, commit `ac07d8e` | GitHub Actions i `$codex-flow-playtest`, seed 42, 1440×900 i 1024×768 | zaliczona | Joby `verify` i `deploy` przeszły; publiczna gra wykonała `Screen → Drive → Kick Out → Shot` z `Perfect 95`, bez błędów konsoli, overflow ani brakujących zasobów. |
 
 ## Blokery i ryzyka
 
 - Brak blokera dla utworzenia przyrostowego PRD pełnego meczu.
 - Produkcyjny bundle zawierający Phaser ma około 1,38 MB przed kompresją i 359 KB gzip; Vite zgłasza ostrzeżenie rozmiaru. Optymalizować dopiero na podstawie pomiaru, nie przed pierwszym gameplayem.
+- `actions/configure-pages@v5` zgłasza nieblokującą adnotację o wewnętrznym przejściu z Node.js 20 na Node.js 24; workflow i deployment przechodzą.
 - Pięć miar PRD 000 potwierdzono wewnętrznie; zrozumiałość dla nowych graczy pozostaje do sprawdzenia przed większą produkcją zawartości.
 
 ## Handoff

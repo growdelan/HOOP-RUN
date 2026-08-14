@@ -27,6 +27,7 @@ Wewnętrzny playtest potwierdził hipotezę, że kolejność kart zależna od st
 - Konsola przeglądarki nie zawierała ostrzeżeń ani błędów.
 - Viewport 1024×768 miał `scrollWidth = clientWidth` i `scrollHeight = clientHeight`; canvas miał 976×549 px.
 - Job weryfikacyjny CI ma wyłącznie uprawnienie odczytu i przygotowuje `dist` przez `upload-pages-artifact`. Osobny job wdrożeniowy działa tylko dla `main`, zależy od zaliczonej walidacji i ma minimalne uprawnienia `pages: write` oraz `id-token: write`.
+- Publiczne wdrożenie commita `ac07d8e` przeszło z wynikiem `success`; zdalny smoke test potwierdził `Perfect 95`, czystą konsolę, brak overflow oraz odpowiedzi HTTP 200 dla HTML, JavaScriptu i CSS.
 
 ## Znane ograniczenia
 
