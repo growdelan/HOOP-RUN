@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 
-import { MatchSession } from "../../application/MatchSession";
+import { RunSession } from "../../application/RunSession";
+import type { RunDeckCardView, RunRewardView, RunViewModel } from "../../application/RunSession";
 import type {
   MatchCardView,
   MatchPlayerView,
@@ -26,12 +27,12 @@ const ZONE_POINTS: Readonly<Record<Zone, Point>> = {
 };
 
 export class PossessionScene extends Phaser.Scene {
-  private readonly session: MatchSession;
+  private readonly session: RunSession;
   private readonly testMode: boolean;
 
   public constructor(options: RuntimeOptions) {
     super("possession");
-    this.session = new MatchSession(options.seed, options.shotClock);
+    this.session = new RunSession(options.seed, options.shotClock);
     this.testMode = options.testMode;
   }
 
@@ -39,21 +40,28 @@ export class PossessionScene extends Phaser.Scene {
     this.renderView();
   }
 
-  public getViewModel(): MatchViewModel {
+  public getViewModel(): RunViewModel {
     return this.session.getViewModel();
   }
 
   private renderView(): void {
     this.children.removeAll(true);
-    const view = this.session.getViewModel();
+    const run = this.session.getViewModel();
     if (this.testMode) {
-      this.game.canvas.dataset.hoopSnapshot = JSON.stringify(view);
+      this.game.canvas.dataset.hoopSnapshot = JSON.stringify(run);
     }
     this.drawBackground();
-    this.drawHeader(view);
-    this.drawCourt(view);
-    this.drawInformationPanel(view);
-    this.drawCards(view);
+    if (run.screen === "start") this.drawStart();
+    else if (run.screen === "howTo") this.drawHowTo(run);
+    else if (run.screen === "reward") this.drawReward(run);
+    else if (run.screen === "intermission") this.drawIntermission(run);
+    else if (run.screen === "summary") this.drawRunSummary(run);
+    else if (run.match !== undefined) {
+      this.drawHeader(run.match, run);
+      this.drawCourt(run.match);
+      this.drawInformationPanel(run.match);
+      this.drawCards(run.match);
+    }
   }
 
   private drawBackground(): void {
@@ -64,7 +72,146 @@ export class PossessionScene extends Phaser.Scene {
     background.fillRoundedRect(18, 14, 1244, 692, 22);
   }
 
-  private drawHeader(view: MatchViewModel): void {
+  private drawStart(): void {
+    this.add.text(640, 128, PRODUCT_NAME, textStyle("#f8fafc", "58px", true))
+      .setOrigin(0.5)
+      .setLetterSpacing(5);
+    this.add.text(640, 196, PRODUCT_TAGLINE, textStyle("#94a3b8", "16px"))
+      .setOrigin(0.5);
+    this.add.text(640, 282, "TRZY MECZE · DWIE NAGRODY · JEDEN RUN", textStyle("#fbbf24", "15px", true))
+      .setOrigin(0.5)
+      .setLetterSpacing(2);
+    this.add.text(640, 330, "Fundamentals → Perimeter Crew → Paint Kings", textStyle("#cbd5e1", "18px"))
+      .setOrigin(0.5);
+    this.drawButton(490, 416, 300, 58, "ROZPOCZNIJ NOWY RUN", () => {
+      this.session.dispatch({ type: "startRun" });
+      this.queueRender();
+    }, 0x1d4ed8);
+    this.drawButton(540, 494, 200, 48, "JAK GRAĆ", () => {
+      this.session.dispatch({ type: "openHowTo" });
+      this.queueRender();
+    }, 0x334155);
+    this.add.text(640, 610, "Sterowanie: mysz · postęp nie jest zapisywany po przeładowaniu", textStyle("#64748b", "11px"))
+      .setOrigin(0.5);
+  }
+
+  private drawHowTo(run: RunViewModel): void {
+    this.add.text(70, 54, "JAK GRAĆ", textStyle("#f8fafc", "34px", true));
+    const columns = run.howTo ?? [];
+    columns.forEach((column, index) => {
+      const x = 70 + index * 400;
+      this.add.rectangle(x + 180, 330, 360, 410, 0x101b2b).setStrokeStyle(1, 0x334155);
+      this.add.text(x + 22, 144, column.title, textStyle("#60a5fa", "15px", true));
+      column.lines.forEach((line, lineIndex) => {
+        this.add.text(x + 22, 190 + lineIndex * 65, `${lineIndex + 1}. ${line}`, {
+          ...textStyle("#dbeafe", "12px"),
+          lineSpacing: 4,
+          wordWrap: { width: 316 },
+        });
+      });
+    });
+    this.drawButton(490, 606, 300, 50, "WRÓĆ DO STARTU", () => {
+      this.session.dispatch({ type: "closeHowTo" });
+      this.queueRender();
+    }, 0x1d4ed8);
+  }
+
+  private drawReward(run: RunViewModel): void {
+    this.drawRunTitle(run, "WYBIERZ NAGRODĘ", "Wybór jest obowiązkowy. Pozostałe dwie karty przepadają.");
+    run.rewardOffer?.forEach((reward, index) => {
+      this.drawRewardCard(reward, 115 + index * 390, 220);
+    });
+    this.add.text(640, 620, `TALIE TERAZ · ATAK ${deckSize(run.offenseDeck)} · OBRONA ${deckSize(run.defenseDeck)}`, textStyle("#94a3b8", "12px", true))
+      .setOrigin(0.5);
+  }
+
+  private drawRewardCard(reward: RunRewardView, x: number, y: number): void {
+    const fill = reward.role === "offense" ? 0x132b46 : 0x17332d;
+    const stroke = reward.role === "offense" ? 0x60a5fa : 0x4ade80;
+    const surface = this.add.rectangle(x + 150, y + 165, 300, 330, fill)
+      .setStrokeStyle(3, stroke)
+      .setInteractive({ useHandCursor: true });
+    surface.on("pointerdown", () => {
+      this.session.dispatch({ type: "chooseReward", offerIndex: reward.index });
+      this.queueRender();
+    });
+    this.add.text(x + 22, y + 25, reward.roleLabel, textStyle(`#${stroke.toString(16).padStart(6, "0")}`, "11px", true));
+    this.add.text(x + 22, y + 60, reward.name.toUpperCase(), {
+      ...textStyle("#f8fafc", "23px", true),
+      wordWrap: { width: 250 },
+    });
+    this.add.text(x + 260, y + 28, `${reward.timeCost}s`, textStyle("#f59e0b", "16px", true));
+    this.add.text(x + 22, y + 126, "DZIAŁANIE", textStyle("#94a3b8", "9px", true));
+    this.add.text(x + 22, y + 146, reward.effect, {
+      ...textStyle("#dbeafe", "11px"),
+      lineSpacing: 4,
+      wordWrap: { width: 256 },
+    });
+    this.add.text(x + 22, y + 210, "WARUNEK / KOMPROMIS", textStyle("#f59e0b", "9px", true));
+    this.add.text(x + 22, y + 230, reward.tradeoff, {
+      ...textStyle("#fde68a", "10px"),
+      lineSpacing: 3,
+      wordWrap: { width: 256 },
+    });
+    this.add.text(x + 22, y + 302, `DODAJ DO TALII: ${reward.roleLabel}`, textStyle("#fbbf24", "10px", true));
+  }
+
+  private drawIntermission(run: RunViewModel): void {
+    this.drawRunTitle(run, "NAGRODA DODANA", "Nowa karta należy do pierwszego cyklu właściwej talii następnego meczu.");
+    const reward = run.selectedReward;
+    if (reward !== undefined) {
+      this.add.text(640, 260, reward.name.toUpperCase(), textStyle("#4ade80", "34px", true)).setOrigin(0.5);
+      this.add.text(640, 316, `TALIA: ${reward.roleLabel} · ${reward.effect}`, {
+        ...textStyle("#dbeafe", "15px"),
+        align: "center",
+        wordWrap: { width: 720 },
+      }).setOrigin(0.5);
+    }
+    this.add.text(640, 410, `NASTĘPNIE: ${run.progressLabel} · ${run.opponent?.name ?? "RYWAL"}`, textStyle("#fbbf24", "17px", true)).setOrigin(0.5);
+    this.add.text(640, 450, run.opponent?.description ?? "", {
+      ...textStyle("#94a3b8", "13px"),
+      align: "center",
+      wordWrap: { width: 720 },
+    }).setOrigin(0.5);
+    this.drawButton(490, 548, 300, 58, "ROZPOCZNIJ NASTĘPNY MECZ", () => {
+      this.session.dispatch({ type: "startNextMatch" });
+      this.queueRender();
+    }, 0x1d4ed8);
+  }
+
+  private drawRunSummary(run: RunViewModel): void {
+    const summary = run.summary;
+    if (summary === undefined) return;
+    this.drawRunTitle(run, summary.title, summary.outcome === "success" ? "Pokonałeś wszystkich trzech rywali." : "Porażka natychmiast kończy bieżący run.");
+    this.add.text(90, 190, `OSIĄGNIĘTY ETAP: ${summary.reachedStage}/3`, textStyle("#fbbf24", "16px", true));
+    this.add.text(90, 226, `CZAS SESJI: ${formatTime(summary.elapsedSeconds)}`, textStyle("#94a3b8", "12px", true));
+    this.add.text(90, 278, "WYNIKI", textStyle("#60a5fa", "12px", true));
+    summary.results.forEach((result, index) => {
+      this.add.text(90, 310 + index * 36, `${index + 1}/3 · ${opponentName(result.opponentId)} · ${result.score.player}:${result.score.opponent} · ${result.winner === "player" ? "WYGRANA" : "PORAŻKA"}`, textStyle(result.winner === "player" ? "#bbf7d0" : "#fecaca", "14px", true));
+    });
+    this.add.text(650, 190, "NAGRODY", textStyle("#4ade80", "12px", true));
+    this.add.text(650, 220, summary.rewards.length === 0 ? "Brak" : summary.rewards.map((reward) => `${reward.name} → ${reward.roleLabel}`).join("\n"), {
+      ...textStyle("#dbeafe", "13px"),
+      lineSpacing: 10,
+    });
+    this.add.text(650, 330, `KOŃCOWA TALIA ATAKU (${deckSize(summary.offenseDeck)})`, textStyle("#60a5fa", "11px", true));
+    this.add.text(650, 356, formatDeck(summary.offenseDeck), { ...textStyle("#cbd5e1", "11px"), wordWrap: { width: 540 } });
+    this.add.text(650, 430, `KOŃCOWA TALIA OBRONY (${deckSize(summary.defenseDeck)})`, textStyle("#4ade80", "11px", true));
+    this.add.text(650, 456, formatDeck(summary.defenseDeck), { ...textStyle("#cbd5e1", "11px"), wordWrap: { width: 540 } });
+    this.drawButton(490, 596, 300, 56, "NOWY RUN · CZYSTE TALIE", () => {
+      this.session.dispatch({ type: "resetRun" });
+      this.queueRender();
+    }, 0x1d4ed8);
+  }
+
+  private drawRunTitle(run: RunViewModel, title: string, subtitle: string): void {
+    this.add.text(55, 34, PRODUCT_NAME, textStyle("#f8fafc", "24px", true)).setLetterSpacing(2);
+    this.add.text(1225, 38, run.progressLabel, textStyle("#fbbf24", "13px", true)).setOrigin(1, 0);
+    this.add.text(640, 92, title, textStyle("#f8fafc", "32px", true)).setOrigin(0.5);
+    this.add.text(640, 142, subtitle, textStyle("#94a3b8", "13px")).setOrigin(0.5);
+  }
+
+  private drawHeader(view: MatchViewModel, run: RunViewModel): void {
     this.add.text(34, 23, PRODUCT_NAME, textStyle("#f8fafc", "27px", true))
       .setLetterSpacing(2);
     this.add.text(218, 57, PRODUCT_TAGLINE, textStyle("#71829a", "9px"))
@@ -75,7 +222,12 @@ export class PossessionScene extends Phaser.Scene {
     this.add.text(407, 35, ":", textStyle("#64748b", "21px", true));
     this.add.text(430, 18, "RYWAL", textStyle("#f87171", "10px", true));
     this.add.text(430, 32, `${view.score.opponent}`, textStyle("#f8fafc", "28px", true));
-    this.add.text(494, 27, view.targetLabel, textStyle("#8190a5", "9px", true));
+    this.add.text(494, 20, view.targetLabel, textStyle("#8190a5", "9px", true));
+    this.add.text(494, 39, `${run.progressLabel} · ${run.opponent?.name ?? "RYWAL"}`, textStyle("#fbbf24", "9px", true));
+    this.add.text(494, 56, run.opponent?.description ?? "", {
+      ...textStyle("#94a3b8", "8px"),
+      wordWrap: { width: 300 },
+    });
 
     this.drawStat(650, "ROLA", view.roleLabel, view.role === "offense" ? 0x60a5fa : 0x4ade80);
     this.drawStat(760, "POSIADANIE", `${view.possessionNumber}`, 0xa78bfa);
@@ -84,16 +236,7 @@ export class PossessionScene extends Phaser.Scene {
 
     if (view.canContinue) {
       this.drawButton(1088, 23, 150, 38, "DALEJ", () => {
-        this.session.continue();
-        this.queueRender();
-      }, 0x1d4ed8);
-    } else if (view.canRematch) {
-      this.drawButton(1010, 23, 108, 38, "REWANŻ", () => {
-        this.session.rematch();
-        this.queueRender();
-      }, 0x166534);
-      this.drawButton(1126, 23, 112, 38, "NOWY MECZ", () => {
-        this.session.startNewMatch();
+        this.session.continueMatch();
         this.queueRender();
       }, 0x1d4ed8);
     }
@@ -461,4 +604,26 @@ function textStyle(
     fontSize,
     ...(bold ? { fontStyle: "bold" } : {}),
   };
+}
+
+function opponentName(id: "fundamentals" | "perimeterCrew" | "paintKings"): string {
+  return {
+    fundamentals: "Fundamentals",
+    perimeterCrew: "Perimeter Crew",
+    paintKings: "Paint Kings",
+  }[id];
+}
+
+function formatTime(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function deckSize(deck: readonly RunDeckCardView[]): number {
+  return deck.reduce((total, card) => total + card.count, 0);
+}
+
+function formatDeck(deck: readonly RunDeckCardView[]): string {
+  return deck.map((card) => `${card.name} ×${card.count}`).join(" · ");
 }

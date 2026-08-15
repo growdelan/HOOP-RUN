@@ -26,6 +26,7 @@ import {
   previewOffenseCardImpact,
   resetMatch,
   resolveOpponentShot,
+  selectWeightedOpponentIntent,
   xorshift32RandomSource,
 } from "../core/index.ts";
 import type {
@@ -41,6 +42,7 @@ import type {
   PossessionState,
   ShotModifier,
   TeamMatchStats,
+  MatchPossessionResolution,
   Zone,
 } from "../core/index.ts";
 
@@ -104,11 +106,17 @@ export interface MatchViewModel {
   readonly assignments: readonly DefenseAssignment[];
   readonly players: readonly MatchPlayerView[];
   readonly cards: readonly MatchCardView[];
+  readonly playedCardIds: readonly CardId[];
   readonly possessionSummary?: PossessionSummaryView;
   readonly matchSummary?: MatchSummaryView;
   readonly canContinue: boolean;
   readonly canRematch: boolean;
   readonly canStartNewMatch: boolean;
+}
+
+export interface MatchSessionController {
+  completePossession(resolution: MatchPossessionResolution): MatchState | undefined;
+  advance(): MatchState | undefined;
 }
 
 export class MatchSession {
@@ -120,10 +128,14 @@ export class MatchSession {
   private lastDetails: readonly string[] = [];
 
   public constructor(
-    seed: number,
+    seedOrState: number | MatchState,
     private readonly shotClock: number = 14,
+    private readonly controller?: MatchSessionController,
   ) {
-    this.matchState = createMatch(PROTOTYPE_MATCH_SETUP, seed);
+    this.matchState =
+      typeof seedOrState === "number"
+        ? createMatch(PROTOTYPE_MATCH_SETUP, seedOrState)
+        : seedOrState;
     this.prepareActivePossession();
   }
 
@@ -160,6 +172,7 @@ export class MatchSession {
       assignments: activeView.assignments,
       players: activeView.players,
       cards: activeView.cards,
+      playedCardIds: activeView.playedCardIds,
       ...(this.matchState.phase !== "possessionSummary" || record === undefined
         ? {}
         : {
@@ -240,7 +253,7 @@ export class MatchSession {
       state,
       { cardId, targetId: playerId },
       defenseCards,
-      PROTOTYPE_OPPONENT_PLANS,
+      this.matchState.setup.opponentProfile ?? PROTOTYPE_OPPONENT_PLANS,
     );
     if (!result.accepted) {
       this.feedbackValue = `NIELEGALNE: ${result.rejection.message}`;
@@ -260,12 +273,18 @@ export class MatchSession {
   }
 
   public continue(): void {
-    const result = advanceMatch(this.matchState);
-    if (!result.accepted) {
-      this.feedbackValue = `NIELEGALNE: ${result.rejection.message}`;
-      return;
+    if (this.controller !== undefined) {
+      const state = this.controller.advance();
+      if (state === undefined) return;
+      this.matchState = state;
+    } else {
+      const result = advanceMatch(this.matchState);
+      if (!result.accepted) {
+        this.feedbackValue = `NIELEGALNE: ${result.rejection.message}`;
+        return;
+      }
+      this.matchState = result.state;
     }
-    this.matchState = result.state;
     if (this.matchState.phase === "activePossession") {
       this.prepareActivePossession();
     }
@@ -288,13 +307,11 @@ export class MatchSession {
   private prepareActivePossession(): void {
     this.selectedDefenseCardId = undefined;
     if (this.matchState.playerRole === "offense") {
-      const intentStep = xorshift32RandomSource.next(this.matchState.rngState);
-      const intentIndex = Math.min(
-        PROTOTYPE_OPPONENT_DEFENSE_INTENTS.length - 1,
-        Math.floor(intentStep.value * PROTOTYPE_OPPONENT_DEFENSE_INTENTS.length),
-      );
-      const intent = PROTOTYPE_OPPONENT_DEFENSE_INTENTS[intentIndex];
-      if (intent === undefined) throw new Error("Brak intencji obronnej przeciwnika.");
+      const profile = this.matchState.setup.opponentProfile;
+      const selected = profile === undefined
+        ? selectFallbackIntent(this.matchState.rngState)
+        : selectWeightedOpponentIntent(profile, this.matchState.rngState);
+      const intent = selected.intent;
       const hand = this.matchState.offenseDeck.hand;
       this.offenseSession = new PossessionSession(
         {
@@ -305,7 +322,7 @@ export class MatchSession {
           defense: { ...PROTOTYPE_SETUP.defense, intent },
         },
         PROTOTYPE_CARDS,
-        intentStep.state,
+        selected.rngState,
       );
       this.defenseState = undefined;
       this.feedbackValue = `ATAK: przeciwnik pokazuje ${intent.name}.`;
@@ -313,13 +330,14 @@ export class MatchSession {
     }
 
     this.offenseSession = undefined;
+    const opponent = this.matchState.setup.opponentProfile ?? PROTOTYPE_OPPONENT_PLANS;
     this.defenseState = createDefensePossession(
       {
         ...PROTOTYPE_DEFENSE_SETUP,
         shotClock: this.shotClock,
         hand: this.matchState.defenseDeck.hand,
       },
-      PROTOTYPE_OPPONENT_PLANS,
+      opponent,
       this.matchState.rngState,
     );
     this.feedbackValue = `OBRONA: plan ${this.defenseState.plan.name}, akcja ${this.defenseState.currentAction.name}.`;
@@ -364,12 +382,18 @@ export class MatchSession {
     rngState: number,
     shotZone?: Zone,
   ): void {
-    const result = completeMatchPossession(this.matchState, {
+    const resolution = {
       outcome,
       usedCardIds,
       rngState,
       ...(shotZone === undefined ? {} : { shotZone }),
-    });
+    } satisfies MatchPossessionResolution;
+    if (this.controller !== undefined) {
+      const state = this.controller.completePossession(resolution);
+      if (state !== undefined) this.matchState = state;
+      return;
+    }
+    const result = completeMatchPossession(this.matchState, resolution);
     if (!result.accepted) throw new Error(result.rejection.message);
     this.matchState = result.state;
   }
@@ -398,6 +422,7 @@ export class MatchSession {
         side: player.side === "offense" ? "player" : "opponent",
       })),
       cards: groupOffenseCards(view.cards, session.state),
+      playedCardIds: session.state.history.map((action) => action.cardId),
     };
   }
 
@@ -442,6 +467,7 @@ export class MatchSession {
         this.matchState.defenseDeck.hand,
         this.selectedDefenseCardId,
       ),
+      playedCardIds: state.history.map((action) => action.cardId),
     };
   }
 
@@ -489,6 +515,7 @@ export class MatchSession {
         interaction: "none",
       })),
       cards: [],
+      playedCardIds: this.matchState.lastPossession?.usedCardIds ?? [],
     };
   }
 }
@@ -505,6 +532,7 @@ interface ActiveView {
   readonly assignments: readonly DefenseAssignment[];
   readonly players: readonly MatchPlayerView[];
   readonly cards: readonly MatchCardView[];
+  readonly playedCardIds: readonly CardId[];
 }
 
 function groupOffenseCards(
@@ -751,6 +779,19 @@ function defenseCardInsights(
 
 function signed(value: number): string {
   return value >= 0 ? `+${value}` : `${value}`;
+}
+
+function selectFallbackIntent(rngState: number): {
+  readonly intent: (typeof PROTOTYPE_OPPONENT_DEFENSE_INTENTS)[number];
+  readonly rngState: number;
+} {
+  const step = xorshift32RandomSource.next(rngState);
+  const intent = PROTOTYPE_OPPONENT_DEFENSE_INTENTS[Math.min(
+    PROTOTYPE_OPPONENT_DEFENSE_INTENTS.length - 1,
+    Math.floor(step.value * PROTOTYPE_OPPONENT_DEFENSE_INTENTS.length),
+  )];
+  if (intent === undefined) throw new Error("Brak intencji obronnej przeciwnika.");
+  return { intent, rngState: step.state };
 }
 
 function formatDefenseEvents(events: readonly DefenseDomainEvent[]): string {

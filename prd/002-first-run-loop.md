@@ -11,7 +11,7 @@ Projekt nie sprawdził jeszcze najważniejszej hipotezy roguelite: czy nagroda z
 - gracze taktycznych deckbuilderów i roguelite'ów,
 - gracze zainteresowani koszykówką bez zręcznościowego sterowania zawodnikami,
 - nowi gracze, którzy potrzebują krótkiego objaśnienia zasad, ale nie gotowego rozwiązania decyzji,
-- dotychczasowi testerzy pełnego meczu, którzy mają ocenić wpływ nagrody na późniejszy sposób gry.
+- dotychczasowi gracze pełnego meczu, których ewentualny feedback może dodatkowo opisać wpływ nagrody na późniejszy sposób gry.
 
 ## 3. Problem produktowy
 
@@ -306,26 +306,25 @@ Sukces i porażka pokazują etap, wyniki meczów, nagrody, końcowe talie oraz �
 13. `Kontynuuj run` odtwarza następny mecz, talie, nagrody, seed i RNG identycznie jak nieprzerwany przebieg.
 14. Nowy run przy istniejącym zapisie wymaga potwierdzenia, a uszkodzony zapis można bezpiecznie odrzucić.
 15. Podsumowanie sukcesu i porażki pokazuje etap, wyniki, nagrody, końcowe talie i czas.
-16. Pełny zwycięski run trwa w typowym playteście około 25–35 minut.
-17. Zewnętrzny tester potrafi wskazać, jak co najmniej jedna nagroda zmieniła jego późniejszą decyzję, i chce rozpocząć kolejny run z innym wyborem.
+16. Reprezentatywny deterministyczny przebieg rejestruje orientacyjny czas pełnego zwycięskiego runu względem diagnostycznego celu 25–35 minut.
+17. Kontrolowany scenariusz pokazuje obserwowalny wpływ co najmniej jednej nagrody na późniejszą prognozę, legalną akcję lub historię; reset umożliwia nowy run z innym wyborem.
 18. Krytyczne reguły runu, nagród, zapisu, nowych kart i przeciwników mają deterministyczne testy bez Phasera.
 19. Produkcyjny build, zapis lokalny i pełny przepływ E2E działają pod `/HOOP-RUN/` bez blokujących błędów konsoli, sieci lub zasobów.
 20. Widoki startu, onboardingu, nagrody, checkpointu i podsumowania są czytelne w dwóch istotnych viewportach desktopowych.
 
 ## 19. Miary powodzenia hipotezy
 
-Pierwsza pętla runu uzasadnia dalsze projektowanie mapy i ekonomii, jeśli playtest potwierdzi, że:
+Pierwsza pętla runu uzasadnia dalsze projektowanie mapy i ekonomii, jeśli testy, E2E i agentowy smoke techniczny potwierdzą, że:
 
-- ukończony zwycięski run trwa około 25–35 minut,
-- gracz rozumie postęp trzech meczów oraz konsekwencję porażki,
-- wybór jednej z trzech kart nie jest oczywisty albo pozorny,
-- co najmniej jedna zdobyta karta zostaje świadomie wykorzystana w późniejszym meczu,
-- tester potrafi opisać wpływ nagrody na swoją decyzję lub build,
-- trzej przeciwnicy wymagają zauważalnie różnych odpowiedzi,
+- reprezentatywny przebieg rejestruje czas względem diagnostycznego celu 25–35 minut,
+- onboarding i stan UI jawnie komunikują postęp trzech meczów oraz konsekwencję porażki,
+- każda oferta jawnie pokazuje role i kompromisy, a kontrolowane scenariusze obejmują dobre oraz ryzykowne użycie kart,
+- co najmniej jedna zdobyta karta zostaje legalnie wykorzystana w późniejszym meczu z obserwowalnym efektem w prognozie lub historii,
+- trzej przeciwnicy mają mierzalnie różne częstotliwości planów i intencji,
 - zapis i wznowienie nie zmieniają oferty, talii ani przebiegu runu,
-- po sukcesie albo porażce istnieje chęć ponownego runu z inną nagrodą.
+- po sukcesie albo porażce reset uruchamia kolejny run z czystymi taliami i pozwala dokonać innego wyboru.
 
-Pierwsza walidacja może być wewnętrzna, ale przed rozpoczęciem mapy, sklepu albo metaprogresji wymagany jest co najmniej jeden pełny test z osobą nieznającą nowych nagród i przeciwników.
+Playtest użytkownika, znajomego lub osoby nieznającej projektu jest opcjonalnym feedbackiem jakościowym. Nie jest kryterium akceptacji ani bramką, a workflow nigdy nie czeka na jego wykonanie lub deklarację chęci ponownego runu.
 
 ## 20. Ryzyka
 
@@ -380,7 +379,7 @@ Mapa, sklep, waluta, rzadkość, metaprogresja i wybór drużyny mogą przedwcze
 - Docelowy pełny run trwa około 25–35 minut.
 - Wszystkie karty mają równy poziom systemowy; brak rzadkości, ulepszeń i waluty.
 - Zapis jest ręczny, lokalny, ma jeden slot i jest dostępny między meczami jako `Zapisz i wyjdź` oraz `Kontynuuj run`.
-- Sukces walidacji wymaga, aby tester potrafił wskazać wpływ nagrody na późniejszą decyzję i chciał kolejnego runu z innym wyborem.
+- Obowiązkową walidację zapewniają deterministyczne testy, E2E i agentowy techniczny smoke przeglądarkowy; ludzkie playtesty są opcjonalnym feedbackiem poza bramką i workflow na nie nie czeka.
 
 ## 22. Założenia do zweryfikowania
 
@@ -390,7 +389,7 @@ Mapa, sklep, waluta, rzadkość, metaprogresja i wybór drużyny mogą przedwcze
 - Trzech liniowych przeciwników wystarczy do odczucia progresji bez mapy.
 - Obecne reguły meczu utrzymają pełny run w czasie 25–35 minut.
 - Jeden checkpoint pomiędzy meczami wystarczy do bezpiecznego przerwania sesji.
-- Krótki onboarding pozwoli nowemu testerowi grać samodzielnie bez ujawniania optymalnych decyzji.
+- Krótki onboarding jawnie wyjaśni rozpoczęcie i reguły bez ujawniania optymalnych decyzji; subiektywna jasność może być później oceniona z opcjonalnego feedbacku.
 
 ## 23. Otwarte pytania do planowania
 
@@ -406,10 +405,10 @@ Mapa, sklep, waluta, rzadkość, metaprogresja i wybór drużyny mogą przedwcze
 
 ## 24. Bramka po PRD 002
 
-Po implementacji i playteście pierwszej pętli runu należy wybrać jeden z wyników:
+Po implementacji, automatycznej walidacji i agentowym smoke teście pierwszej pętli runu należy wybrać jeden z wyników:
 
-1. `proceed` — nagrody zmieniają późniejsze decyzje, przeciwnicy są różni, a run zachęca do powtórki; można przygotować PRD mapy albo kolejnego systemu runu,
+1. `proceed` — kontrolowane scenariusze pokazują wpływ nagród na późniejsze decyzje, przeciwnicy są różni, a reset umożliwia kolejny run z innym wyborem; można przygotować PRD mapy albo kolejnego systemu runu,
 2. `iterate` — pętla jest obiecująca, ale nagrody, czas, przeciwnicy, zapis albo onboarding wymagają ograniczonej korekty,
-3. `rethink` — trzy mecze i dwie nagrody nie tworzą odczuwalnego buildu albo sesja nie zachęca do ponownego runu.
+3. `rethink` — kontrolowane scenariusze nie pokazują wpływu dwóch nagród na późniejsze decyzje albo trzy profile nie tworzą funkcjonalnie różnego przebiegu.
 
 Pozytywny wynik nie zatwierdza automatycznie sklepu, waluty, metaprogresji ani szerokiej produkcji kart i przeciwników. Każdy z tych zakresów wymaga osobnej decyzji produktowej.

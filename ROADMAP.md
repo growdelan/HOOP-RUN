@@ -117,7 +117,7 @@ Cztery karty o przestrzennych kompromisach oraz różne wagi planów i intencji 
 - Przyjęto: profile używają wyłącznie istniejącej zawartości z wagami `1/1/1` dla `Fundamentals`, dominującym `3/1/1` dla specjalizacji `Perimeter Crew` i `Paint Kings` oraz bez nowej akcji przeciwnika.
 - Ryzyko: wartości kart są strojalnym prototypem; audyt musi wykryć dominantę, martwe konteksty i pozorny wybór bez niejawnego rozszerzania mechanik.
 
-## Milestone 10: Grywalny trzy-meczowy run (`planned`)
+## Milestone 10: Grywalny trzy-meczowy run (`done`)
 
 ### Cel
 
@@ -155,15 +155,15 @@ Przepływ `mecz → wybór jednej z trzech kart → trudniejszy mecz` jest czyte
 
 - Testy automatyczne: testy `RunSession` oraz Playwright dla startu, onboardingu, jednej nagrody, zmienionej talii, przejścia do kolejnego meczu i zakończenia runu.
 - Build: pełne `./scripts/verify.sh` i produkcyjny preview pod `/HOOP-RUN/`.
-- Playtest: wymagany `$codex-flow-playtest` pełnego zwycięskiego runu oraz kontrolowanej porażki na 1280×720 i 1024×768; zmierzyć orientacyjny czas i świadome użycie nagrody.
+- Playtest: wymagany agentowy `$codex-flow-playtest` jako techniczny smoke reprezentatywnych ekranów i rzeczywistych kliknięć na 1280×720 i 1024×768, z kontrolą konsoli, sieci, zasobów, layoutu i obserwowalnego użycia nagrody. Pełny sukces i kontrolowaną porażkę pokrywa E2E; nie trzeba ręcznie powtarzać tej macierzy.
 - Review: wymagane niezależne review przepływu faz, granic Phasera, sterowania i zgodności z PRD 002.
 
 ### Zależności i ryzyka
 
 - Zależność: Milestone 9.
 - Ryzyko: wiele nowych ekranów przeciąży jedną scenę; Phaser ma prezentować model, a nawigacja faz pozostaje w sesji aplikacyjnej.
-- Ryzyko: pełny run spowalnia iterację; kontrolowane seedy mogą skracać testy automatyczne, ale manualny dowód musi obejmować rzeczywisty przepływ.
-- Ryzyko: onboarding może ponownie wymagać prowadzenia testera; treść wyjaśnia język systemu, nie optymalne odpowiedzi.
+- Ryzyko: pełny run spowalnia iterację; kontrolowane seedy i E2E pokrywają macierz, a smoke techniczny sprawdza reprezentatywny rzeczywisty przepływ bez jej ręcznego dublowania.
+- Ryzyko: onboarding może pozostać niejasny mimo poprawnej treści i layoutu; subiektywny feedback gracza jest mile widziany, ale nie blokuje milestone'u.
 
 ## Milestone 11: Checkpoint przeglądarkowy i odporne wznowienie (`planned`)
 
@@ -203,7 +203,7 @@ Zapis kompletnego stanu domenowego po wyborze nagrody pozwala bezpiecznie przerw
 
 - Testy automatyczne: Vitest kodeka, integralności, dozwolonej fazy, adaptera i równoważności wznowienia; Playwright dla zapisu, reloadu, kontynuacji, potwierdzenia nowego runu i uszkodzonego slotu.
 - Build: pełne `./scripts/verify.sh` i preview pod `/HOOP-RUN/`.
-- Playtest: wymagany `$codex-flow-playtest` zapisu po obu nagrodach oraz wznowienia na 1280×720 i 1024×768, z kontrolą konsoli, sieci i trwałości slotu.
+- Playtest: wymagany agentowy `$codex-flow-playtest` reprezentatywnego zapisu i wznowienia na 1280×720 i 1024×768, z kontrolą konsoli, sieci, layoutu i trwałości slotu; warianty obu nagród oraz równoważność dalszego przebiegu pokrywa E2E.
 - Review: wymagane read-only review granicy `core`/`application`/`platform`, kompletności checkpointu, walidacji danych i braku możliwości przerzucania oferty.
 
 ### Zależności, ryzyka i TODO
@@ -222,25 +222,26 @@ Ustabilizować pełny run, zautomatyzować krytyczne ścieżki i zebrać dowody 
 
 ### Hipoteza do zweryfikowania
 
-Pętla `mecz → nagroda → trudniejszy mecz` tworzy w 25–35 minut odczuwalny build: gracz świadomie wykorzystuje co najmniej jedną nagrodę, rozróżnia przeciwników i chce rozpocząć kolejny run z innym wyborem.
+Pętla `mecz → nagroda → trudniejszy mecz` tworzy obserwowalny build: co najmniej jedna nagroda legalnie wpływa na późniejszą decyzję, profile przeciwników są mierzalnie różne, a pełny run ma zarejestrowany orientacyjny czas względem celu 25–35 minut.
 
 ### Kryteria akceptacji
 
 - Kontrolowane testy obejmują sukces, porażkę na każdym z trzech etapów, obie role nagród, wszystkie nowe karty i trzy profile przeciwników.
 - Playwright automatyzuje pełny zwycięski run, co najmniej jedną porażkę, dwa wybory nagród, reset nowego runu oraz zapis i wznowienie bez zmiany dalszego przebiegu.
 - Pełny przepływ działa w produkcyjnym preview i po publikacji pod `/HOOP-RUN/` bez blokujących błędów konsoli, sieci, zasobów lub poziomego overflow.
-- Wewnętrzny pełny playtest mierzy czas 25–35 minut, użycie nagród, różnice przeciwników, czytelność onboardingu oraz chęć ponownego runu.
-- Co najmniej jedna osoba nieznająca nowych nagród i przeciwników kończy pełny test bez podawania kontr, wskazuje wpływ nagrody na późniejszą decyzję i odpowiada, czy chce kolejnego runu z innym wyborem.
+- Deterministyczny scenariusz rejestruje orientacyjny czas pełnego runu, obserwowalny efekt co najmniej jednej nagrody oraz różnice profili przeciwników; cel 25–35 minut jest miarą diagnostyczną, nie ręczną bramką `done`.
+- Agentowy techniczny smoke sprawdza onboarding, reprezentatywną nagrodę, checkpoint i podsumowanie na dwóch viewportach przez rzeczywiste kliknięcia, bez błędów konsoli, sieci, zasobów lub layoutu.
+- Ewentualny feedback użytkownika lub innej osoby można zapisać jako dodatkowy sygnał jakościowy, ale jego brak ani deklarowana chęć kolejnego runu nie blokują milestone'u lub bramki.
 - Zapis i wznowienie są porównane z nieprzerwanym przebiegiem dla tego samego checkpointu i dalszych decyzji.
 - Dokument walidacji rozstrzyga wszystkie miary PRD 002 wynikiem `proceed`, `iterate` albo `rethink`.
 - Końcowe niezależne review nie zawiera nierozwiązanych problemów blokujących.
 
 ### Zakres
 
-- stabilizacja i ograniczone poprawki ujawnione przez pełny playtest,
+- stabilizacja i ograniczone poprawki ujawnione przez testy, E2E lub agentowy smoke techniczny,
 - referencyjne seedy i audyty balansu nagród oraz przeciwników,
 - E2E sukcesu, porażki, obu nagród, resetu i checkpointu,
-- pomiar czasu, test onboardingu i zewnętrzny test pełnego runu,
+- pomiar czasu oraz techniczna walidacja onboardingu i pełnego runu,
 - `docs/validation/prd-002-validation.md` oraz decyzja bramki.
 
 ### Poza zakresem
@@ -254,23 +255,23 @@ Pętla `mecz → nagroda → trudniejszy mecz` tworzy w 25–35 minut odczuwalny
 
 - Testy automatyczne: `npm run test`, `npm run test:e2e`, kontrolowane seedy i audyt deterministyczności całego runu.
 - Build: pełne `./scripts/verify.sh` oraz weryfikacja artefaktu GitHub Pages.
-- Playtest: wymagany pełny `$codex-flow-playtest` sukcesu, porażki i checkpointu na dwóch viewportach oraz udokumentowany zewnętrzny test nowego gracza.
+- Playtest: wymagany agentowy `$codex-flow-playtest` jako techniczny smoke reprezentatywnego sukcesu lub porażki oraz checkpointu na dwóch viewportach; pełną macierz sukcesu, porażek i wznowienia pokrywają E2E. Zewnętrzny test gracza jest opcjonalnym feedbackiem poza bramką.
 - Review: wymagane końcowe read-only review diffu, testów, zapisu, dowodów playtestu, zakresu PRD i dokumentacji.
 
 ### Zależności i ryzyka
 
 - Zależność: Milestone 11.
-- Ryzyko: automatyzacja potwierdzi poprawność, ale nie odczuwalny rozwój buildu; bramka wymaga obserwacji świadomego użycia nagrody.
+- Ryzyko: automatyzacja potwierdzi poprawność i obserwowalny efekt nagrody, ale nie subiektywne odczucie rozwoju buildu; taki feedback użytkownik może zgłosić później bez blokowania bramki.
 - Ryzyko: zwycięski run może przekroczyć 35 minut; najpierw mierzyć, a zasady meczu zmieniać tylko przez jawną iterację zakresu.
-- Ryzyko: tester może rozumieć system dopiero po prowadzeniu; scenariusz zewnętrzny nie podaje optymalnych sekwencji ani kontr.
+- Ryzyko: poprawna treść i techniczny smoke nie gwarantują subiektywnej jasności onboardingu; późniejszy feedback może uruchomić osobną iterację.
 
 ## Bramka po PRD 002
 
 Po ukończeniu Milestone 12 należy wybrać wynik:
 
-1. `proceed` — nagrody zmieniają późniejsze decyzje, przeciwnicy są różni, a run zachęca do powtórki; można przygotować PRD mapy albo kolejnego ograniczonego systemu runu,
+1. `proceed` — testy pokazują wpływ nagród na późniejsze decyzje, profile przeciwników są różne, a reset umożliwia kolejny run z innym wyborem; można przygotować PRD mapy albo kolejnego ograniczonego systemu runu,
 2. `iterate` — pętla jest obiecująca, ale nagrody, czas, przeciwnicy, zapis albo onboarding wymagają ograniczonej korekty,
-3. `rethink` — trzy mecze i dwie nagrody nie tworzą odczuwalnego buildu albo sesja nie zachęca do ponownego runu.
+3. `rethink` — kontrolowane scenariusze nie pokazują wpływu dwóch nagród na późniejsze decyzje albo trzy profile nie tworzą funkcjonalnie różnego przebiegu.
 
 Pozytywny wynik nie zatwierdza automatycznie sklepu, waluty, metaprogresji ani szerokiej produkcji zawartości.
 

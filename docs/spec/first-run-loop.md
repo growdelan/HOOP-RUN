@@ -2,7 +2,7 @@
 
 ## Status
 
-- Status: częściowo zaimplementowane — Milestone 8 ukończony, Milestone 9 `done` po review `APPROVED`, Milestone'y 10–12 pozostają `planned`.
+- Status: częściowo zaimplementowane — Milestone'y 8–10 ukończone, Milestone'y 11–12 pozostają `planned`.
 - Źródło: `prd/002-first-run-loop.md`.
 - Plan realizacji: Milestone'y 8–12 w `ROADMAP.md`.
 - Zależność: zweryfikowany pełny mecz z PRD 001 opisany w `docs/spec/full-match.md`.
@@ -244,8 +244,9 @@ Phaser renderuje model i wysyła komendy. Nie generuje oferty, nie aktualizuje t
 |---|---|---|
 | agregat runu, fazy, nagrody, RNG | 8 | deterministyczne testy Vitest i review core |
 | cztery karty i trzy profile | 9 | testy mechanik, scenariusze kompromisów i audyt seedów |
-| grywalny run, onboarding i podsumowania | 10 | testy sesji, build i pełny playtest przeglądarkowy |
-| checkpoint, integralność i wznowienie | 11 | testy kodeka i adaptera, E2E reloadu oraz playtest |
-| hipoteza 25–35 minut i wpływ nagrody | 12 | E2E, pełne playtesty, test zewnętrzny i dokument bramki |
+| grywalny run, onboarding i podsumowania | 10 | testy sesji, E2E pełnego runu, build i agentowy smoke techniczny |
+| checkpoint, integralność i wznowienie | 11 | testy kodeka i adaptera, E2E reloadu oraz agentowy smoke techniczny |
+| hipoteza czasu i wpływ nagrody | 12 | kontrolowane seedy, E2E, agentowy smoke techniczny i dokument bramki |
 
 Bramka PRD 002 może otrzymać wynik `proceed`, `iterate` albo `rethink`. Mapa, sklep, ekonomia i metaprogresja nie są planowane przed tą decyzją.
+Playtest człowieka jest opcjonalnym feedbackiem poza bramką; workflow nie czeka na użytkownika ani zewnętrznego testera i nie wymaga deklaracji chęci ponownego runu.

@@ -2,7 +2,7 @@
 
 Taktyczny roguelite deckbuilder o koszykówce 3 na 3, projektowany do uruchamiania bezpośrednio w przeglądarce. Projekt korzysta z TypeScriptu, Phasera i Vite, a build statyczny jest konfigurowany dla GitHub Pages.
 
-Repozytorium zawiera grywalny prototyp pełnego meczu. Gracz naprzemiennie atakuje i aktywnie broni, korzysta z osobnych talii, odczytuje intencje i plany przeciwnika oraz gra do 11 punktów z przewagą 2 i limitem 15. Zakres rozwoju opisują `spec.md` i `ROADMAP.md`.
+Repozytorium zawiera grywalny pierwszy run złożony z trzech kolejnych meczów. Gracz naprzemiennie atakuje i aktywnie broni, korzysta z osobnych talii, odczytuje profile przeciwników oraz gra do 11 punktów z przewagą 2 i limitem 15. Po zwycięstwach w pierwszym i drugim meczu obowiązkowo wybiera nagrodę rozwijającą jedną z talii; porażka kończy run, a trzecie zwycięstwo prowadzi do sukcesu. Zakres rozwoju opisują `spec.md` i `ROADMAP.md`.
 
 Wynik walidacji pierwszego pionowego przekroju opisuje `docs/validation/prd-000-validation.md`. Bieżące dowody i brakujące warunki bramki pełnego meczu opisuje `docs/validation/prd-001-validation.md`.
 
@@ -21,15 +21,17 @@ npm run dev
 
 Vite pokaże lokalny adres serwera. Gra jest budowana z bazą `/HOOP-RUN/`, zgodną z docelowym adresem repozytorium na GitHub Pages.
 
-### Sterowanie prototypem
+### Przebieg runu
 
-1. Kliknij kartę oznaczoną jako `DOSTĘPNA`.
+1. Na ekranie startowym wybierz `ROZPOCZNIJ NOWY RUN`. Przycisk `JAK GRAĆ` otwiera krótkie objaśnienie ról, punktacji, procentowej szansy trafienia i przebiegu trzech meczów.
+2. Kliknij kartę oznaczoną jako `DOSTĘPNA`.
    Karta pokazuje koszt czasu i przewidywany efekt dla bieżącego stanu; `PP` oznacza punkty procentowe szansy trafienia.
-2. Kliknij zawodnika z zielonym obramowaniem, aby wskazać wykonawcę.
-3. Dla kart wymagających celu kliknij zawodnika z żółtym obramowaniem.
+3. Kliknij zawodnika z zielonym obramowaniem, aby wskazać wykonawcę. Dla kart wymagających celu kliknij zawodnika z żółtym obramowaniem.
 4. W obronie kliknij kartę odpowiedzi, a następnie zawodnika z żółtym obramowaniem.
 5. Po każdym posiadaniu kliknij `DALEJ`, aby przełączyć rolę.
-6. Po zakończeniu meczu wybierz `REWANŻ` z tym samym seedem albo `NOWY MECZ`.
+6. Po zwycięstwie w meczu 1 lub 2 wybierz jedną z trzech obowiązkowych nagród, zatwierdź ją i przejdź do kolejnego przeciwnika. Wybrana karta pozostaje w odpowiedniej talii do końca runu.
+7. Porażka kończy run niepowodzeniem, a zwycięstwo w trzecim meczu — sukcesem. Końcowe podsumowanie pokazuje wyniki, nagrody, talie i czas runu.
+8. `NOWY RUN · CZYSTE TALIE` wraca do pierwszego meczu i usuwa nagrody poprzedniego runu.
 
 Seed można ustawić bezpośrednio w adresie, na przykład `?seed=42`. Kontrolowany scenariusz końca czasu jest dostępny przez `?seed=42&clock=9`; parametr `clock` służy do testowania prototypu i domyślnie wynosi `14`.
 
@@ -95,7 +97,7 @@ npm run build
 npm run test:e2e
 ```
 
-Testy E2E budują aplikację, uruchamiają produkcyjny preview pod `/HOOP-RUN/` i automatyzują prawdziwe kliknięcia w canvas dla ataku, obrony, podsumowań, pełnego zwycięstwa, pełnej porażki i rewanżu.
+Testy E2E budują aplikację, uruchamiają produkcyjny preview pod `/HOOP-RUN/` i automatyzują prawdziwe kliknięcia w canvas. Obejmują start i `JAK GRAĆ`, atak i obronę, obowiązkową nagrodę oraz przejście między meczami, użycie zdobytej karty, pełny zwycięski run, kontrolowaną porażkę, podsumowanie i reset z czystymi taliami. Widoczne ekrany są sprawdzane w viewportach 1280×720 i 1024×768.
 
 ## CI i GitHub Pages
 
@@ -106,7 +108,7 @@ Opublikowana gra jest dostępna pod adresem `https://growdelan.github.io/HOOP-RU
 ## Znane ograniczenia prototypu
 
 - Walidacja hipotezy ma charakter wewnętrzny; nie zastępuje testów z nowymi graczami.
-- Interfejs jest przeznaczony dla przeglądarek desktopowych; osobny layout mobilny pozostaje poza PRD 001.
+- Interfejs jest przeznaczony dla przeglądarek desktopowych; osobny layout mobilny pozostaje poza bieżącym zakresem.
 - Produkcyjny bundle Phasera przekracza domyślny próg ostrzeżenia Vite, ale ładuje się poprawnie i nie blokuje pionowego przekroju.
 
 ## Struktura aplikacji
@@ -115,7 +117,7 @@ Opublikowana gra jest dostępna pod adresem `https://growdelan.github.io/HOOP-RU
 src/
 ├── core/          # czyste, deterministyczne reguły gry
 ├── content/       # dane kart, zawodników i scenariuszy
-├── application/   # sesje posiadania, pełnego meczu i modele widoku
+├── application/   # sesje posiadania, meczu i runu oraz modele widoku
 ├── presentation/  # Phaser, plansza, karty i wejście myszą
 └── platform/      # konfiguracja zależna od przeglądarki/hostingu
 tests/              # testy automatyczne poza kodem aplikacji

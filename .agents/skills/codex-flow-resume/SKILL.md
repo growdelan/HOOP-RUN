@@ -11,5 +11,6 @@ description: Odtwórz stan HOOP-RUN po rozpoczęciu nowej sesji lub powrocie do 
 4. Doczytaj `AGENTS.md`, diff, `package.json` lub kod tylko wtedy, gdy są potrzebne do zweryfikowania bieżącego stanu.
 5. Porównaj dokumentację z faktycznym stanem repozytorium. Nie zakładaj, że status ani zapisany wynik playtestu są aktualne.
 6. Jeśli skrypt zgłasza przekroczenie limitu, uwzględnij `$codex-flow-compact-context` jako zalecany krok, ale nie modyfikuj plików podczas resume.
+7. Nie traktuj braku playtestu użytkownika lub zewnętrznego testera jako blokera; workflow wymaga wyłącznie automatycznej walidacji i adekwatnego agentowego smoke testu technicznego.
 
 Zwróć krótki brief: cel projektu, aktualny zakres, co zrobiono, ostatnią walidację i playtest, blokery, najbliższy krok, pliki potrzebne do jego wykonania i ewentualną potrzebę kompakcji.

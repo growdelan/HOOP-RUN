@@ -1,10 +1,10 @@
 import type Phaser from "phaser";
 
-import type { MatchViewModel } from "../application/MatchSession";
+import type { RunViewModel } from "../application/RunSession";
 import type { PossessionScene } from "../presentation/scenes/PossessionScene";
 
 export interface GameTestBridge {
-  snapshot(): MatchViewModel;
+  snapshot(): RunViewModel;
 }
 
 declare global {
@@ -19,7 +19,7 @@ export function attachGameTestBridge(game: Phaser.Game): void {
     value: Object.freeze({
       snapshot: () => {
         const scene = game.scene.getScene("possession") as PossessionScene;
-        return JSON.parse(JSON.stringify(scene.getViewModel())) as MatchViewModel;
+        return JSON.parse(JSON.stringify(scene.getViewModel())) as RunViewModel;
       },
     } satisfies GameTestBridge),
   });

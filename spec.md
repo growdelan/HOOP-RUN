@@ -331,10 +331,11 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 - Każdy milestone ma mierzalne kryteria, testy, build oraz jawny wymóg lub brak wymogu playtestu.
 - Reguły `Pass`, `Screen`, `Drive`, `Kick Out`, `Shot`, zegara, legalności, obrony i RNG mają testy przypadków podstawowych oraz brzegowych.
 - Reguły punktacji, zwycięstwa, przełączania ról, obu talii, aktywnej obrony, planów przeciwnika i wspólnego RNG mają deterministyczne testy bez Phasera.
-- Grywalny milestone obejmuje playtest podstawowej sekwencji, alternatywnej ścieżki i nielegalnej akcji.
-- Walidacja PRD 001 obejmuje pełny wygrany i przegrany mecz, rewanż, trzy plany przeciwnika, dwa viewporty oraz co najmniej jeden test z osobą nieznającą projektu.
+- Grywalny milestone obejmuje automatyczne pokrycie podstawowej sekwencji, alternatywnej ścieżki i nielegalnej akcji oraz agentowy techniczny smoke widocznego przepływu.
+- Historyczna walidacja PRD 001 objęła pełny wygrany i przegrany mecz, rewanż, trzy plany przeciwnika, dwa viewporty oraz test z osobą nieznającą projektu; nie ustanawia to wymagania dla kolejnych bramek.
 - Reguły runu, ofert, nowych kart, profili przeciwników i checkpointu mają deterministyczne testy bez Phasera.
-- Walidacja PRD 002 obejmuje pełny sukces, porażki etapów, obie nagrody, checkpoint, dwa viewporty i test osoby nieznającej nowych nagród ani przeciwników.
+- Walidacja PRD 002 obejmuje automatycznie pełny sukces, porażki etapów, obie nagrody i checkpoint oraz agentowy techniczny smoke dwóch viewportów.
+- Playtesty użytkownika i innych osób są opcjonalnym feedbackiem jakościowym poza kryteriami `done` oraz bramkami; workflow nigdy na nie nie czeka.
 - Build produkcyjny działa z bazą `/HOOP-RUN/` bez brakujących zasobów.
 - Problemy blokujące z niezależnego review muszą zostać rozwiązane przed oznaczeniem większego milestone'u jako `done`.
 
@@ -350,7 +351,8 @@ Poniższe decyzje i pytania pozostają częścią kontrolowanego planu:
 - Przyjęto w Milestone 7: podsumowanie pokazuje posiadania, trafienia, pudła, straty i końce czasu; seedy 2 i 42 zabezpieczają automatyczne ścieżki zwycięstwa i porażki, a audyt 100 seedów mierzy balans strategii.
 - Przyjęto w Milestone 7: pierwszy przeciwnik nie zmienia planu na podstawie wyniku i nie otrzymuje ukrytej wiedzy ani bonusu; adaptację do wyniku można rozważyć dopiero w osobnym zakresie zawartości AI.
 - TODO po playteście stref: zatwierdzić albo zmienić topologię boiska.
-- Przyjęto dla prototypu: informacja o rzucie pokazuje jednocześnie kategorię i procent; dalsze uproszczenie zależy od testu nowego gracza.
+- Przyjęto dla prototypu: informacja o rzucie pokazuje jednocześnie kategorię i procent; dalsze uproszczenie może wynikać z opcjonalnego feedbacku gracza, ale nie blokuje roadmapy.
+- Przyjęto procesowo: obowiązkowe są deterministyczne testy, E2E i adekwatny agentowy smoke techniczny; ludzki playtest oraz deklarowana chęć ponownego runu nie są bramką i nie zatrzymują workflow.
 - Przyjęto dla PRD 002: run rozpoczyna obecna drużyna i obecne talie; kapitan, trener, archetyp i draft pozostają poza zakresem.
 - Przyjęto przed Milestone 9: `Backdoor Cut` kosztuje 2 sekundy i otwiera cuttera w paint wyłącznie przeciw agresywnej presji bez pomocy; `Step Back` kosztuje 3 sekundy i daje niekumulujące `+12 pp` do najbliższego rzutu tego wykonującego.
 - Przyjęto przed Milestone 9: `Hedge` kosztuje łącznie 3 sekundy, daje `-2 Opponent Advantage` i `+6 contest` na zasłonie kosztem odsłonięcia screenera; `Close Out` kosztuje 2 sekundy i daje `+12 contest` na czysty rzut obwodowy albo tylko `+4 contest` oraz `+1 Opponent Advantage`, gdy atak ma już przewagę.

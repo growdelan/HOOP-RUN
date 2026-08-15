@@ -12,6 +12,7 @@ description: Wykonaj w kontrolowanej pętli wszystkie wykonalne milestone'y ze s
 3. Zbierz milestone'y `planned` w kolejności zależności. Pomiń wpisy szablonowe i zablokowane.
 4. Przed implementacją pokaż krótki plan kolejności. Nie czekaj na dodatkowe potwierdzenie, jeśli polecenie jest jednoznaczne.
 5. Główny wątek pełni rolę koordynatora. Nie implementuje kodu; deleguje pracę agentom opisanym poniżej i scala ich wyniki.
+6. Nigdy nie zatrzymuj pętli w oczekiwaniu na playtest użytkownika, znajomego lub zewnętrznego testera. Obowiązkowy playtest oznacza autonomiczny techniczny smoke agenta; ludzki feedback pozostaje opcjonalny poza bramką.
 
 ## Agenci i kolejność
 

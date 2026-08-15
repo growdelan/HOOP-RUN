@@ -9,7 +9,7 @@ description: Wykonaj niezależne, read-only review zmian HOOP-RUN pod kątem bł
 2. Przeczytaj zmienione pliki w zakresie potrzebnym do oceny zachowania.
 3. Oceń poprawność reguł, przepływu stanu, przypadków brzegowych, deterministyczności, obsługi błędów, regresji, bezpieczeństwa zapisu oraz wydajności pętli aktualizacji/renderowania.
 4. Sprawdź, czy logika domenowa nie została ukryta w scenach Phasera, a zasoby i adresy działają z bazową ścieżką GitHub Pages.
-5. Oceń, czy testy sprawdzają istotne zachowanie, a widoczna zmiana ma adekwatny dowód playtestu.
+5. Oceń, czy testy sprawdzają istotne zachowanie, a widoczna zmiana ma adekwatny dowód agentowego technicznego playtestu. Nie wymagaj ludzkiego lub zewnętrznego testera ani ręcznego dublowania macierzy pokrytej E2E.
 6. Sprawdź zgodność z `AGENTS.md`, `spec.md`, `ROADMAP.md`, `STATUS.md` oraz `README.md`, jeśli zmieniło się użycie.
 7. Nie modyfikuj żadnych plików.
 

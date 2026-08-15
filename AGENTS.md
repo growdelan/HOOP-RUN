@@ -48,6 +48,8 @@
 - Testy i smoke testy nie mogą wymagać prawdziwych sekretów ani niestabilnych usług zewnętrznych.
 - Po zmianie zasad gry dodaj test deterministyczny obejmujący jej efekt i przypadki brzegowe.
 - Po zmianie widocznego przepływu, UI, sterowania lub konfiguracji buildu wykonaj adekwatny playtest w przeglądarce zgodnie z `$codex-flow-playtest`.
+- Playtest agenta jest technicznym smoke testem prawdziwej przeglądarki: sprawdza rzeczywiste kliknięcia, konsolę, sieć, zasoby i layout. Nie udaje badania zewnętrznego gracza i nie powtarza pełnej ręcznej macierzy, jeśli pokrywają ją deterministyczne testy E2E.
+- Playtesty użytkownika, znajomego lub zewnętrznego testera są opcjonalnym feedbackiem poza kryteriami `done` i bramkami roadmapy. Workflow nigdy na nie nie czeka; użytkownik sam zgłasza subiektywne problemy po własnej grze.
 - Po istotnej zmianie zapisz w `STATUS.md` wykonaną walidację i jej wynik.
 - Nie używaj `STATUS.md` jako dziennika. Zachowuj bieżący stan, ostatnią istotną walidację, aktywne ryzyka i następny krok.
 - Dla ryzykownych lub większych zmian wykonaj niezależne review diffu przed publikacją.

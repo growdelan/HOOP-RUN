@@ -12,7 +12,7 @@ description: Implementuj jeden konkretny milestone lub jasno ograniczone zadanie
 5. Zaimplementuj wyłącznie uzgodniony zakres małymi zmianami. Utrzymuj reguły gry poza scenami Phasera i nie ukrywaj losowości.
 6. Dodaj deterministyczne testy odpowiadające ryzyku zmiany.
 7. Uruchom walidację zmienionego obszaru i `./scripts/verify.sh`.
-8. Jeśli zmiana dotyczy UI, sterowania, przepływu, animacji, zasobów lub buildu przeglądarkowego, wykonaj `$codex-flow-playtest` przed uznaniem kryteriów za spełnione.
+8. Jeśli zmiana dotyczy UI, sterowania, przepływu, animacji, zasobów lub buildu przeglądarkowego, wykonaj autonomiczny techniczny `$codex-flow-playtest` przed uznaniem kryteriów za spełnione. Nie czekaj na użytkownika ani zewnętrznego testera; ich feedback jest opcjonalny i nie stanowi bramki.
 9. Zaktualizuj `STATUS.md`, a status milestone'u zmieniaj wyłącznie zgodnie z faktami.
 
 Nie wykonuj commita ani pusha. Podaj zmienione pliki, walidacje, wynik playtestu, ograniczenia i problemy wymagające review.

@@ -8,8 +8,9 @@ Ten plik przechowuje wyłącznie informacje potrzebne do bezpiecznej kontynuacji
 - PRD 002: `prd/002-first-run-loop.md` został przekształcony w specyfikację i Milestone'y 8–12.
 - Milestone 8: `Deterministyczny agregat runu i nagrody` jest ukończony (`done`).
 - Milestone 9: `Karty nagród i tożsamość przeciwników` jest ukończony (`done`), a niezależne review zakończyło się decyzją `APPROVED`.
-- Następny milestone: `Milestone 10: Grywalny trzy-meczowy run` (`planned`); użytkownik zakończył workflow po M9.
-- Aktywny zakres implementacyjny: brak; M10+ pozostaje nieuruchomiony.
+- Milestone 10: `Grywalny trzy-meczowy run` jest ukończony (`done`), a finalne niezależne review zakończyło się decyzją `APPROVED`.
+- Aktywny zakres implementacyjny: brak; Milestone 11 pozostaje `planned`, a workflow kończy się po M10 zgodnie z poleceniem użytkownika.
+- Playtesty użytkownika i innych osób są opcjonalnym feedbackiem poza kryteriami `done` i bramkami. Workflow wymaga testów, E2E oraz adekwatnego agentowego smoke testu technicznego i nigdy nie czeka na człowieka.
 - Poza zatwierdzonym zakresem: mapa, sklep, waluta, rzadkość, metaprogresja, wybór drużyny, zapis aktywnego meczu i zawartość ponad minimum PRD 002.
 
 ## Aktualna baza
@@ -25,22 +26,23 @@ Ten plik przechowuje wyłącznie informacje potrzebne do bezpiecznej kontynuacji
 
 - Milestone 8: ukończony czysty agregat runu, fazy, trzy etapy, deterministyczne oferty i aktualizacja talii.
 - Milestone 9 (`done`): `Backdoor Cut`, `Step Back`, `Hedge`, `Close Out` oraz profile `Fundamentals`, `Perimeter Crew`, `Paint Kings`; review `APPROVED`.
-- Milestone 10 (`planned`): grywalny trzy-meczowy pionowy przekrój, onboarding, nagrody i podsumowania.
-- Milestone 11: wersjonowany `RunCheckpointV1`, jeden slot `localStorage`, integralność i wznowienie.
-- Milestone 12: E2E, pełne playtesty, test zewnętrzny i bramka `proceed / iterate / rethink`.
+- Milestone 10 (`done`): `RunSession`, start, onboarding, trzy mecze, obowiązkowe nagrody, zmienione talie i podsumowania sukcesu/porażki są grywalne bez reloadu; snapshot E2E obejmuje stan runu; review `APPROVED`.
+- Milestone 11 (`planned`): wersjonowany `RunCheckpointV1`, jeden slot `localStorage`, integralność i wznowienie.
+- Milestone 12: kontrolowane testy, E2E, agentowy smoke techniczny i bramka `proceed / iterate / rethink`; ludzki feedback jest opcjonalny.
 
 ## Najbliższy krok
 
 - Parametry czterech kart są ustalone w `docs/spec/first-run-loop.md`: koszty bazowe 2/3/2/2, `Hedge` kosztujący łącznie 3 po interakcji oraz mierzalne dobre i ryzykowne scenariusze.
 - Polityka widoczności jest ustalona: nagroda należy do pierwszego cyklu talii, bez przypinania do pierwszej ręki.
 - Profile są ustalone: istniejąca zawartość, wagi `1/1/1` dla `Fundamentals` oraz dominujące `3/1/1` dla specjalizacji `Perimeter Crew` i `Paint Kings`, bez nowych akcji.
-- Następny krok: brak prac bez jawnego wznowienia; M10 pozostaje `planned`.
+- Następny możliwy krok produktowy: Milestone 11 dopiero po jawnym wznowieniu; obecny workflow kończy się po zatwierdzonym M10.
 - Commit i push nadal wymagają jawnego polecenia użytkownika.
 
 ## Ostatnia istotna walidacja
 
 | Data | Zakres | Wynik |
 |---|---|---|
+| 2026-08-15 | Formalne zamknięcie M10 po review `APPROVED` | Końcowy `./scripts/verify.sh` zielony: limity kontekstu, lint, typecheck, 93/93 testy Vitest, build i 5/5 E2E w 4,7 min; `git diff --check` bez błędów. Wcześniejszy przejściowy timeout oferty przeszedł osobno 1/1 i w końcowym pełnym zestawie. Agentowy smoke techniczny M10 objął oba viewporty, a ludzkie playtesty pozostają opcjonalnym feedbackiem poza bramką. M10 `done`; workflow kończy się po M10. |
 | 2026-08-15 | Formalne zamknięcie M9 po review `APPROVED` | Ostatni `./scripts/verify.sh` zielony: limity kontekstu, lint, typecheck, 88 testów Vitest, build i 4/4 E2E. `git diff --check` bez błędów; playtest niewymagany. M9 `done`, M10 pozostaje `planned`, workflow zakończony po M9. |
 | 2026-08-15 | Druga runda review M9 — preview Backdoor, dynamiczny Close Out i status specyfikacji | Lint, typecheck, 88 testów Vitest i build przeszły. Pełny `./scripts/verify.sh` miał 3/4 E2E: pierwszy produkcyjny flow zakończył się timeoutem przy przejściu z podsumowania do obrony; ten sam test uruchomiony osobno przeszedł 1/1. `git diff --check` bez błędów. Playtest niewymagany, UI/config bez zmian. M9 pozostaje `in_progress`. |
 | 2026-08-15 | Milestone 9 — poprawki review ekspozycji, preview, widoczności nagród i audytów profili | `./scripts/verify.sh` przeszedł: limity kontekstu, lint, typecheck, 88 testów Vitest, build i 4 E2E. `git diff --check` bez błędów. Playtest niewymagany, ponieważ nie zmieniono UI, sterowania ani konfiguracji przeglądarki. M9 pozostaje `in_progress` przed niezależnym re-review. |
@@ -55,8 +57,8 @@ Pełny zapis dowodów PRD 001 znajduje się w `docs/validation/prd-001-validatio
 
 ## Blokery i ryzyka
 
-- Brak aktywnego blokera; M10 pozostaje `planned`.
-- Samodzielność onboardingu nie została potwierdzona; przyszły test nie może podawać optymalnych sekwencji ani kontr.
+- Brak aktywnego blokera; M10 jest `done`, a M11 pozostaje `planned` bez rozpoczętej implementacji.
+- Onboarding przeszedł E2E i agentowy smoke techniczny; jego subiektywna jasność może być później poprawiana na podstawie opcjonalnego feedbacku, ale nie blokuje roadmapy.
 - Nagroda może nie pojawić się przed szybkim końcem meczu mimo obecności w pierwszym cyklu; audyt seedów ma zmierzyć to ryzyko bez przypinania karty do pierwszej ręki.
 - Wartości czterech kart są prototypem do audytu; ewentualne strojenie musi pozostać w danych i nie może rozszerzać mechanik bez decyzji.
 - Agregat M8 przechowuje kursor RNG wyłącznie w aktywnym `MatchState` albo poza meczem w `RunState`; dalsza integracja musi zachować tę własność.
@@ -66,6 +68,6 @@ Pełny zapis dowodów PRD 001 znajduje się w `docs/validation/prd-001-validatio
 
 ## Handoff
 
-- Najpierw przeczytaj `STATUS.md`, sekcję Milestone 9 w `ROADMAP.md`, `docs/spec/first-run-loop.md` oraz kontrakty `src/core/run.ts` i katalog `src/content/prototypeRun.ts`.
-- Decyzje, których nie wolno zgubić: dokładnie trzy mecze; nagrody tylko po zwycięstwach 1 i 2; porażka kończy run; nowy run czyści talie; jeden kanoniczny RNG; Phaser tylko prezentuje stan.
-- Szczegóły ukończonych Milestone'ów 4–7 są w `docs/archive/roadmap/prd-001.md`; nie czytaj archiwum podczas zwykłej implementacji Milestone 9.
+- Przed Milestone 11 przeczytaj `STATUS.md`, jego sekcję w `ROADMAP.md`, `docs/spec/first-run-loop.md` oraz kontrakty `src/core/run.ts` i `src/application/RunSession.ts`.
+- Decyzje, których nie wolno zgubić: checkpoint tylko po wybranej nagrodzie między meczami; jeden wersjonowany slot przez port `application` i adapter `platform`; zapis kanonicznego RNG; bez zapisu aktywnego meczu lub nierozstrzygniętej oferty.
+- Przed implementacją M11 rozstrzygnij zapisane TODO: finalny schemat i klucz `RunCheckpointV1` oraz wykluczenie lub wliczenie przerwy do czasu runu. Nie czytaj archiwum podczas zwykłej implementacji.
