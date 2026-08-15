@@ -2,7 +2,7 @@
 
 ## Status
 
-- Status: zaplanowane, jeszcze niezaimplementowane.
+- Status: zaimplementowane i zweryfikowane; bramka PRD 001 zakończona wynikiem `proceed`.
 - Źródło: `prd/001-full-match.md`.
 - Plan realizacji: Milestone'y 4–7 w `ROADMAP.md`.
 - Zależność: zweryfikowany reducer ofensywnego posiadania z PRD 000.
@@ -201,7 +201,7 @@ Phaser renderuje ten model i wysyła komendy. Po `Screen` przesuwa token zasłan
 | pełny przepływ od `0:0` do wyniku | 6 | testy sesji, build i playtest w przeglądarce |
 | wygrana, porażka, rewanż i hipoteza 8–12 minut | 7 | E2E, pełne playtesty i test nowego gracza |
 
-Bramka PRD 001 może otrzymać wynik `proceed`, `iterate` albo `rethink`. Systemy runu nie są planowane przed tą decyzją.
+Bramka PRD 001 otrzymała wynik `proceed`. Pierwsza pętla runu została zaplanowana osobno w `docs/spec/first-run-loop.md` i Milestone'ach 8–12.
 
 ## Otwarte decyzje
 

@@ -2,12 +2,12 @@
 
 ## Status i źródła
 
-- Status: zweryfikowane zakresy PRD 000 i PRD 001 oraz PRD 002 gotowy do planowania.
+- Status: zweryfikowane zakresy PRD 000 i PRD 001 oraz zaplanowany zakres PRD 002.
 - Gwiazda północna produktu: `docs/product-vision.md`.
-- Źródła wymagań: `prd/000-initial-prd.md` i `prd/001-full-match.md`; PRD 002 nie zmienia specyfikacji przed planowaniem.
+- Źródła wymagań: `prd/000-initial-prd.md`, `prd/001-full-match.md` i `prd/002-first-run-loop.md`.
 - Data utworzenia: 2026-08-14.
-- Ostatnia aktualizacja: 2026-08-14.
-- Zakres obowiązywania: fundament produktu, działające ofensywne posiadanie oraz zweryfikowany pełny mecz 3 na 3.
+- Ostatnia aktualizacja: 2026-08-15.
+- Zakres obowiązywania: fundament produktu, zweryfikowany pełny mecz 3 na 3 oraz zaplanowany pierwszy trzy-meczowy run.
 - Walidacja zakresu: `docs/validation/prd-000-validation.md` i `docs/validation/prd-001-validation.md`; obie bramki zakończone wynikiem `proceed`.
 
 ## Cel produktu
@@ -38,15 +38,22 @@ Główna hipoteza PRD 001:
 
 > Seria naprzemiennych posiadań ofensywnych i defensywnych, połączona rzeczywistym wynikiem, tworzy napięty mecz trwający około 8–12 minut bez popadania w powtarzalność.
 
-Bramka PRD 001 ma wynik `proceed`: zewnętrzny pierwszy mecz trwał 10 minut, zakończył się 8:11, a tester rozumiał decyzje po pisemnym objaśnieniu zasad i chciał rewanżu. Kolejny zakres wymaga osobnego PRD pierwszej pętli runu.
+Bramka PRD 001 ma wynik `proceed`: zewnętrzny pierwszy mecz trwał 10 minut, zakończył się 8:11, a tester rozumiał decyzje po pisemnym objaśnieniu zasad i chciał rewanżu.
+
+Zaplanowany zakres PRD 002 dodaje pierwszy zamknięty run: trzy mecze z `Fundamentals`, `Perimeter Crew` i `Paint Kings`, obowiązkowy wybór jednej z trzech kart po pierwszych dwóch zwycięstwach, cztery nowe karty, krótki onboarding oraz jeden ręczny lokalny checkpoint między meczami. Szczegółowy kontrakt znajduje się w `docs/spec/first-run-loop.md`.
+
+Główna hipoteza PRD 002:
+
+> Pętla `mecz → wybór jednej z trzech kart → trudniejszy mecz` sprawia, że gracz świadomie rozwija dwie talie, dostosowuje decyzje do kolejnych przeciwników i chce rozpocząć następny run z innym wyborem nagród.
 
 ## Poza aktualnym zakresem
 
 - zbiórki, kontry i tryb `Transition`,
-- mapa runu, nagrody, trenerzy, sprzęt, draft i metaprogresja,
-- wielu przeciwników, elity, bossowie i finalny balans,
+- mapa runu, rozgałęzienia, sklep, waluta, rzadkość i ulepszanie kart,
+- trenerzy, sprzęt, draft, wybór drużyny i metaprogresja,
+- przeciwnicy i karty poza minimum PRD 002, elity, wielu bossów i finalny balans,
 - faule, rzuty wolne, zmęczenie, kontuzje i zmiany składu,
-- zapis postępu, backend, konta, rankingi i multiplayer,
+- zapis aktywnego meczu, wiele slotów, chmura, backend, konta, rankingi i multiplayer,
 - finalne sprite'y, rozbudowane animacje, audio oraz osobna optymalizacja mobilna.
 
 Rozszerzenie któregokolwiek z tych obszarów wymaga kolejnego PRD albo jawnej aktualizacji zakresu.
@@ -218,15 +225,25 @@ Pierwszy zestaw mechanik obejmuje `Pressure`, `Switch`, `Go Under`, `Help Defens
 
 Mecz ma dokładnie jeden logiczny strumień losowości. Agregat przekazuje aktualny stan RNG do tasowania, wyboru planu i rozstrzygnięcia rzutu, a następnie zapisuje zwrócony stan. Aktywne posiadanie może czasowo przechowywać ten kursor, lecz nie może istnieć drugi rozbieżny stan RNG. Ten sam seed i identyczna sekwencja decyzji muszą odtworzyć ręce, plany, rozstrzygnięcia, wynik i statystyki.
 
+## Model domenowy pierwszej pętli runu
+
+Szczegółowy kontrakt znajduje się w `docs/spec/first-run-loop.md`.
+
+`RunState` składa istniejący agregat meczu i jest jedynym źródłem prawdy o seedzie oraz RNG runu, etapie, obu składach talii, aktywnym meczu, ofercie, nagrodach, wynikach i rezultacie końcowym. Fazy rozróżniają aktywny mecz, wybór nagrody, przerwę przed następnym meczem oraz sukces albo porażkę.
+
+Run prowadzi liniowo przez dokładnie trzy profile. Porażka kończy run, pierwsze dwa zwycięstwa generują po jednej deterministycznej ofercie, a trzecie zwycięstwo kończy run bez nagrody. Oferta jest przechowywana w stanie i zawiera co najmniej jedną kartę obu ról. Wybrana karta zostaje dopisana do właściwej talii na resztę runu; nowy run odtwarza talie startowe.
+
+Wersjonowany checkpoint jest dozwolony wyłącznie po wyborze nagrody, przed następnym meczem. Czysty kodek waliduje dane, `application` definiuje port jednego slotu, a `platform` implementuje go w `localStorage`. Czas runu pochodzi z wstrzykniętego zegara aplikacyjnego i nie wpływa na gameplay ani RNG; sposób liczenia przerwy po zapisaniu pozostaje TODO przed Milestone 11.
+
 ## Architektura i przepływ danych
 
 Granice systemu:
 
-1. `core` — czyste typy, agregat meczu, oba reducery posiadania, cykle talii, reguły kart, punktacja, walidacja, jakość rzutu i RNG.
-2. `content` — definicje kart, talii, zawodników, intencji, planów przeciwnika, progów i scenariuszy testowych.
-3. `application` — `MatchSession`, inicjalizacja, dispatch komend, reset lub rewanż i publikacja modelu widoku.
+1. `core` — czyste typy, agregaty runu i meczu, oba reducery posiadania, cykle talii, nagrody, checkpoint, reguły kart, punktacja, walidacja, jakość rzutu i RNG.
+2. `content` — definicje kart, talii, zawodników, ofert, profili przeciwników, intencji, planów, progów i scenariuszy testowych.
+3. `application` — `RunSession`, składana `MatchSession`, port checkpointu i zegara, dispatch komend, reset lub wznowienie oraz publikacja modelu widoku.
 4. `presentation` — sceny Phasera, plansza, tokeny, karty, teksty, animacje i wejście.
-5. `platform` — konfiguracja Vite, ścieżka GitHub Pages i późniejsze integracje przeglądarkowe.
+5. `platform` — konfiguracja Vite, ścieżka GitHub Pages, adapter `localStorage` i zegar przeglądarkowy.
 
 Przepływ:
 
@@ -240,7 +257,7 @@ wejście gracza
 
 Phaser nie importuje niejawnych mutowalnych singletonów domenowych. `core` nie importuje Phasera, DOM ani API przeglądarki.
 
-Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem składanym przez agregat meczu. Reguły wyniku, naprzemienności, talii i zwycięstwa nie mogą zostać przeniesione do sesji aplikacyjnej ani sceny Phasera.
+Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem składanym przez agregat meczu, a agregat meczu przez agregat runu. Reguły wyniku, faz, talii, nagród, przeciwników i zwycięstwa nie mogą zostać przeniesione do sesji aplikacyjnej ani sceny Phasera.
 
 ## Decyzje techniczne
 
@@ -249,7 +266,7 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 - Decyzja: TypeScript `strict`, Phaser i Vite, zarządzane przez npm z wersjonowanym `package-lock.json`.
 - Uzasadnienie: stos wspiera grę 2D, szybkie iteracje i statyczny deployment.
 - Konsekwencje: repozytorium definiuje skrypty `lint`, `typecheck`, `test`, `build` i docelowo `test:e2e`.
-- Dotyczy: PRD 000–001, wszystkie milestone'y.
+- Dotyczy: PRD 000–002, wszystkie milestone'y.
 
 ### Testy
 
@@ -258,14 +275,14 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 - Konsekwencje: testy domenowe nie uruchamiają Phasera; `test:e2e` uruchamia build albo kontrolowany serwer preview.
 - Decyzja: parametr `e2e=1` aktywuje wyłącznie odczytowy, serializowany snapshot modelu widoku; test nadal wykonuje akcje przez prawdziwe kliknięcia w canvas.
 - Konsekwencje: most nie jest aktywny w zwykłym uruchomieniu i nie umożliwia zmiany stanu ani omijania reguł.
-- Dotyczy: PRD 000–001, milestone'y 1–7; snapshot może zostać rozszerzony o stan meczu bez dodawania komend testowych.
+- Dotyczy: PRD 000–002, milestone'y 1–12; snapshot może zostać rozszerzony o stan runu bez dodawania komend testowych.
 
 ### Dystrybucja statyczna
 
 - Decyzja: pierwszy cel publikacji to GitHub Pages pod `/HOOP-RUN/`, bez backendu.
 - Uzasadnienie: prototyp ma być dostępny bez instalacji i serwera aplikacyjnego.
 - Konsekwencje: ścieżki zasobów i build są testowane z niekorzeniową bazą; push do `main` uruchamia wdrożenie dopiero po pełnej walidacji i przygotowaniu artefaktu Pages. Zgoda na automatyczne wdrożenie nie oznacza zgody na wykonywanie przyszłych pushów.
-- Dotyczy: PRD 000–001, milestone'y 0, 3 i 7.
+- Dotyczy: PRD 000–002, milestone'y 0, 3, 7 i 12.
 
 ### Deterministyczny silnik zasad
 
@@ -281,6 +298,20 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 - Konsekwencje: dokładne liczby i kopie mogą się zmieniać w ramach balansu, ale kontrakty legalności, zdarzeń i deterministyczności pozostają stabilne.
 - Dotyczy: PRD 001, milestone'y 4–7.
 
+### Trwałość pierwszego runu
+
+- Decyzja: checkpoint ma jeden wersjonowany format domenowy; dostęp do jednego slotu `localStorage` odbywa się przez port warstwy aplikacyjnej i adapter platformowy.
+- Uzasadnienie: run musi działać statycznie na GitHub Pages, zachować testowalność bez przeglądarki i bezpiecznie odrzucać niezgodne dane.
+- Konsekwencje: `core` nie importuje Web Storage ani DOM; zapis jest dostępny tylko między meczami, a nieobsługiwana wersja nie jest częściowo odtwarzana.
+- Dotyczy: PRD 002, Milestone 11.
+
+### Pomiar czasu runu
+
+- Decyzja techniczna: czas pochodzi z wstrzykniętego zegara i jest rejestrowany przy kontrolowanych granicach sesji; reguły nie odczytują czasu bezpośrednio.
+- Uzasadnienie: miara 25–35 minut ma opisywać rozgrywkę, a czas nie może wpływać na deterministyczność zasad.
+- Konsekwencje: `core` nie wywołuje `Date.now()` i nie używa czasu jako źródła losowości; wybór między aktywnym czasem a pełnym czasem ściennym pozostaje TODO przed Milestone 11.
+- Dotyczy: PRD 002, milestone'y 10–12.
+
 ## Dostępność i informacja zwrotna
 
 - Kluczowy stan nie może być kodowany wyłącznie kolorem.
@@ -291,7 +322,9 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 - Przed wyborem karta pokazuje przewidywany efekt liczbowy dla aktualnego stanu: zmianę `Advantage`, wpływ na szansę rzutu w punktach procentowych, szansę straty i warunkowe odsłonięcie zawodnika, jeśli dotyczą danej akcji.
 - Karta `Shot` pokazuje aktualną szansę trafienia, kategorię jakości i wartość punktową; interfejs wyjaśnia, że liczba jakości jest procentem trafienia, a `Advantage +1` daje `+6 pp`.
 - Podsumowanie posiadania zatrzymuje przepływ, pokazuje zmianę wyniku i następną rolę przed udostępnieniem `Dalej`.
-- Podstawowe sterowanie działa myszą; pełna obsługa klawiatury pozostaje poza PRD 001, chyba że wynika bezpośrednio ze standardowych elementów HTML.
+- Ekran runu pokazuje etap, nazwę i opis przeciwnika; oferta pokazuje rolę, działanie i kompromis każdej karty przed wyborem.
+- Start jednoznacznie rozróżnia nowy run, kontynuację i `Jak grać`; błędy checkpointu nie blokują rozpoczęcia od nowa.
+- Podstawowe sterowanie działa myszą; pełna obsługa klawiatury pozostaje poza PRD 002, chyba że wynika bezpośrednio ze standardowych elementów HTML.
 
 ## Jakość i kryteria ukończenia
 
@@ -300,12 +333,14 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 - Reguły punktacji, zwycięstwa, przełączania ról, obu talii, aktywnej obrony, planów przeciwnika i wspólnego RNG mają deterministyczne testy bez Phasera.
 - Grywalny milestone obejmuje playtest podstawowej sekwencji, alternatywnej ścieżki i nielegalnej akcji.
 - Walidacja PRD 001 obejmuje pełny wygrany i przegrany mecz, rewanż, trzy plany przeciwnika, dwa viewporty oraz co najmniej jeden test z osobą nieznającą projektu.
+- Reguły runu, ofert, nowych kart, profili przeciwników i checkpointu mają deterministyczne testy bez Phasera.
+- Walidacja PRD 002 obejmuje pełny sukces, porażki etapów, obie nagrody, checkpoint, dwa viewporty i test osoby nieznającej nowych nagród ani przeciwników.
 - Build produkcyjny działa z bazą `/HOOP-RUN/` bez brakujących zasobów.
 - Problemy blokujące z niezależnego review muszą zostać rozwiązane przed oznaczeniem większego milestone'u jako `done`.
 
 ## TODO i bramki decyzji
 
-Poniższe pytania balansowe nie blokują rozpoczęcia Milestone 4, o ile implementacja pozostawia je w danych i nie utrwala niezatwierdzonych wartości w mechanice:
+Poniższe decyzje i pytania pozostają częścią kontrolowanego planu:
 
 - Przyjęto w Milestone 4: startowe talie mają po 10 kart, po dwie kopie każdej mechaniki, a deterministyczne dobieranie gwarantuje minimalną legalną ścieżkę ukończenia posiadania.
 - Przyjęto do playtestu prototypową macierz efektów pięciu mechanik defensywnych; wartości pozostają balansem w danych.
@@ -316,13 +351,18 @@ Poniższe pytania balansowe nie blokują rozpoczęcia Milestone 4, o ile impleme
 - Przyjęto w Milestone 7: pierwszy przeciwnik nie zmienia planu na podstawie wyniku i nie otrzymuje ukrytej wiedzy ani bonusu; adaptację do wyniku można rozważyć dopiero w osobnym zakresie zawartości AI.
 - TODO po playteście stref: zatwierdzić albo zmienić topologię boiska.
 - Przyjęto dla prototypu: informacja o rzucie pokazuje jednocześnie kategorię i procent; dalsze uproszczenie zależy od testu nowego gracza.
-- TODO przed runem: ustalić relację kapitana, trenera, archetypu drużyny i draftu zawodników.
+- Przyjęto dla PRD 002: run rozpoczyna obecna drużyna i obecne talie; kapitan, trener, archetyp i draft pozostają poza zakresem.
+- Przyjęto przed Milestone 9: `Backdoor Cut` kosztuje 2 sekundy i otwiera cuttera w paint wyłącznie przeciw agresywnej presji bez pomocy; `Step Back` kosztuje 3 sekundy i daje niekumulujące `+12 pp` do najbliższego rzutu tego wykonującego.
+- Przyjęto przed Milestone 9: `Hedge` kosztuje łącznie 3 sekundy, daje `-2 Opponent Advantage` i `+6 contest` na zasłonie kosztem odsłonięcia screenera; `Close Out` kosztuje 2 sekundy i daje `+12 contest` na czysty rzut obwodowy albo tylko `+4 contest` oraz `+1 Opponent Advantage`, gdy atak ma już przewagę.
+- Przyjęto przed Milestone 9: nagroda należy do pierwszego cyklu właściwej talii następnego meczu i jest dobierana przed pierwszym przetasowaniem, jeżeli cykl zostanie zużyty; nie jest przypinana do pierwszej ręki ani wyniku.
+- Przyjęto przed Milestone 9: profile używają wyłącznie istniejących planów, akcji i intencji. `Fundamentals` ma wagi `1/1/1`; `Perimeter Crew` preferuje `Quick Three` i `Deny Perimeter` wagą 3; `Paint Kings` preferuje `Pick & Roll` i `Protect Paint` wagą 3; pozostałe wagi wynoszą 1.
+- TODO przed Milestone 11: zatwierdzić finalny schemat `RunCheckpointV1`, klucz storage i znaczenie aktywnego czasu.
 - TODO przed zbiórkami: ustalić granicę posiadania oraz przejście do `Transition`.
 - TODO przed metaprogresją: zdefiniować odblokowania bez trwałej przewagi statystycznej.
 
 ## Zasady ewolucji
 
 - `spec.md` pozostaje indeksem aktualnej prawdy. Rozbudowane reguły przenoś do `docs/spec/`, gdy dokument zbliża się do limitu.
-- Zmiana zachowania aktualizuje specyfikację i roadmapę; nowe funkcje poza PRD 001 wymagają osobnego zakresu.
+- Zmiana zachowania aktualizuje specyfikację i roadmapę; nowe funkcje poza PRD 002 wymagają osobnego zakresu.
 - README zmieniaj tylko przy zmianie uruchamiania, konfiguracji lub użycia.
 - Refaktory wykonuj w zakresie bieżącego milestone'u albo planuj oddzielnie.

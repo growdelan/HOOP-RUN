@@ -28,4 +28,12 @@ export {
   xorshift32RandomSource,
 } from "./rng.ts";
 export type { RandomSource, RandomStep } from "./rng.ts";
+export type * from "./run.ts";
+export {
+  createRun,
+  FIRST_RUN_OPPONENT_ORDER,
+  getRunRngState,
+  reduceRun,
+  resetRun,
+} from "./run.ts";
 export { categorizeShotScore, clampShotScore } from "./shotQuality.ts";
