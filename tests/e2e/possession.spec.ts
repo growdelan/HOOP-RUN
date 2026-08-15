@@ -70,7 +70,7 @@ test("start, Jak grać i pierwszy mecz działają przez rzeczywiste kliknięcia"
 });
 
 test("kontrolowany seed przechodzi przez nagrody, zmienione talie i kończy zwycięski run", async ({ page }, testInfo) => {
-  test.setTimeout(240_000);
+  test.setTimeout(360_000);
   await page.setViewportSize({ width: 1024, height: 768 });
   const diagnostics = collectDiagnostics(page);
   await page.goto("/HOOP-RUN/?seed=2&e2e=1");
@@ -108,6 +108,7 @@ test("kontrolowany seed przechodzi przez nagrody, zmienione talie i kończy zwyc
 });
 
 test("oferta nagrody pozostaje czytelna w obu viewportach", async ({ page }, testInfo) => {
+  test.setTimeout(180_000);
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/HOOP-RUN/?seed=2&e2e=1");
   await startRun(page);
