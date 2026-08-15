@@ -272,7 +272,10 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 
 - Decyzja: Vitest dla logiki i Playwright dla krytycznego przepływu przeglądarkowego.
 - Uzasadnienie: reguły wymagają szybkich deterministycznych testów, a UI rzeczywistego smoke testu.
-- Konsekwencje: testy domenowe nie uruchamiają Phasera; `test:e2e` uruchamia build albo kontrolowany serwer preview.
+- Konsekwencje: testy domenowe nie uruchamiają Phasera; `test:e2e` uruchamia pełny zestaw przez kontrolowany produkcyjny preview, a `test:e2e:smoke` sprawdza krótki przepływ startu, pierwszego meczu, bazę Pages i layout.
+- Decyzja: push i pull request blokują publikację tylko na szybkim smoke E2E; pełny zestaw E2E pozostaje obowiązkową walidacją lokalną przed publikacją oraz osobnym workflow ręcznym i cotygodniowym, który nie jest zależnością deploymentu Pages.
+- Uzasadnienie: pełne runy pozostają wartościową diagnostyką, ale ich koszt renderowania na współdzielonym runnerze GitHub jest nieproporcjonalny do bramki każdego deploymentu i powoduje timeouty mimo zielonej walidacji lokalnej.
+- Konsekwencje: porażka pełnego workflow jest raportowana niezależnie, a oba workflowy przechowują przez 7 dni dostępne screenshoty, trace'y i kontekst błędu Playwrighta.
 - Decyzja: parametr `e2e=1` aktywuje wyłącznie odczytowy, serializowany snapshot modelu widoku; test nadal wykonuje akcje przez prawdziwe kliknięcia w canvas.
 - Konsekwencje: most nie jest aktywny w zwykłym uruchomieniu i nie umożliwia zmiany stanu ani omijania reguł.
 - Dotyczy: PRD 000–002, milestone'y 1–12; snapshot może zostać rozszerzony o stan runu bez dodawania komend testowych.
@@ -281,7 +284,7 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 
 - Decyzja: pierwszy cel publikacji to GitHub Pages pod `/HOOP-RUN/`, bez backendu.
 - Uzasadnienie: prototyp ma być dostępny bez instalacji i serwera aplikacyjnego.
-- Konsekwencje: ścieżki zasobów i build są testowane z niekorzeniową bazą; push do `main` uruchamia wdrożenie dopiero po pełnej walidacji i przygotowaniu artefaktu Pages. Zgoda na automatyczne wdrożenie nie oznacza zgody na wykonywanie przyszłych pushów.
+- Konsekwencje: ścieżki zasobów i build są testowane z niekorzeniową bazą; push do `main` uruchamia wdrożenie dopiero po lint, typechecku, testach domenowych, buildzie, smoke E2E i przygotowaniu artefaktu Pages. Zgoda na automatyczne wdrożenie nie oznacza zgody na wykonywanie przyszłych pushów.
 - Dotyczy: PRD 000–002, milestone'y 0, 3, 7 i 12.
 
 ### Deterministyczny silnik zasad

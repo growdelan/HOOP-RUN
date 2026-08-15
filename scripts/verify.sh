@@ -37,9 +37,14 @@ for script_name in "${required_scripts[@]}"; do
     npm run "$script_name"
 done
 
-if has_script test:e2e; then
-    echo "+ npm run test:e2e"
-    npm run test:e2e
+e2e_script="${HOOP_RUN_E2E_SCRIPT:-test:e2e}"
+
+if has_script "$e2e_script"; then
+    echo "+ npm run $e2e_script"
+    npm run "$e2e_script"
+elif [ -n "${HOOP_RUN_E2E_SCRIPT:-}" ]; then
+    echo "Błąd: package.json nie definiuje wskazanego skryptu E2E '$e2e_script'." >&2
+    exit 1
 else
-    echo "INFO: brak opcjonalnego skryptu test:e2e — pominięto automatyczny smoke test przeglądarkowy."
+    echo "INFO: brak opcjonalnego skryptu $e2e_script — pominięto test przeglądarkowy."
 fi

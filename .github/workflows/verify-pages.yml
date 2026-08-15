@@ -29,7 +29,19 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Verify application
+        id: verify
+        env:
+          HOOP_RUN_E2E_SCRIPT: test:e2e:smoke
         run: ./scripts/verify.sh
+
+      - name: Upload Playwright diagnostics
+        if: failure() && steps.verify.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-smoke-${{ github.run_attempt }}
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

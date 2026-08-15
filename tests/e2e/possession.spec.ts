@@ -13,7 +13,7 @@ const ZONE_POINTS = {
   paint: { x: 430, y: 220 },
 } as const;
 
-test("start, Jak grać i pierwszy mecz działają przez rzeczywiste kliknięcia", async ({ page }, testInfo) => {
+test("start, Jak grać i pierwszy mecz działają przez rzeczywiste kliknięcia", { tag: "@smoke" }, async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1024, height: 768 });
   const diagnostics = collectDiagnostics(page);
   await page.goto("/HOOP-RUN/?seed=42&e2e=1");
@@ -151,7 +151,7 @@ test("kontrolowana porażka kończy run bez oferty nagrody", async ({ page }) =>
   expect(diagnostics.badResponses).toEqual([]);
 });
 
-test("przepływ startu i meczu mieści się w widoku 1024×768", async ({ page }) => {
+test("przepływ startu i meczu mieści się w widoku 1024×768", { tag: "@smoke" }, async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto("/HOOP-RUN/?seed=2&e2e=1");
   await expect(page.locator("canvas")).toBeVisible();
