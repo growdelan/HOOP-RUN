@@ -36,6 +36,7 @@ Ten plik przechowuje wyłącznie informacje potrzebne do bezpiecznej kontynuacji
 - Polityka widoczności jest ustalona: nagroda należy do pierwszego cyklu talii, bez przypinania do pierwszej ręki.
 - Profile są ustalone: istniejąca zawartość, wagi `1/1/1` dla `Fundamentals` oraz dominujące `3/1/1` dla specjalizacji `Perimeter Crew` i `Paint Kings`, bez nowych akcji.
 - Następny możliwy krok produktowy: Milestone 11 dopiero po jawnym wznowieniu; obecny workflow kończy się po zatwierdzonym M10.
+- Decyzje wejściowe M11 są zatwierdzone: aktywny czas bez przerwy poza sesją, `elapsedActiveMs`, stały klucz `hoop-run:run-checkpoint`, dyskryminator `hoop-run.run-checkpoint`, `version: 1`, `contentVersion: 1` i kanoniczny snapshot wyłącznie fazy `intermission`.
 - Commit i push nadal wymagają jawnego polecenia użytkownika.
 
 ## Ostatnia istotna walidacja
@@ -70,4 +71,4 @@ Pełny zapis dowodów PRD 001 znajduje się w `docs/validation/prd-001-validatio
 
 - Przed Milestone 11 przeczytaj `STATUS.md`, jego sekcję w `ROADMAP.md`, `docs/spec/first-run-loop.md` oraz kontrakty `src/core/run.ts` i `src/application/RunSession.ts`.
 - Decyzje, których nie wolno zgubić: checkpoint tylko po wybranej nagrodzie między meczami; jeden wersjonowany slot przez port `application` i adapter `platform`; zapis kanonicznego RNG; bez zapisu aktywnego meczu lub nierozstrzygniętej oferty.
-- Przed implementacją M11 rozstrzygnij zapisane TODO: finalny schemat i klucz `RunCheckpointV1` oraz wykluczenie lub wliczenie przerwy do czasu runu. Nie czytaj archiwum podczas zwykłej implementacji.
+- Kontrakt M11 jest rozstrzygnięty w `docs/spec/first-run-loop.md`: checkpoint nie zawiera `activeMatch`, `rewardOffer`, `outcome`, `savedAt` ani modelu widoku; walidacja sprawdza także spójność etapu, wyników, nagród, talii i właściciela RNG. Nie czytaj archiwum podczas zwykłej implementacji.

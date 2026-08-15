@@ -206,11 +206,12 @@ Zapis kompletnego stanu domenowego po wyborze nagrody pozwala bezpiecznie przerw
 - Playtest: wymagany agentowy `$codex-flow-playtest` reprezentatywnego zapisu i wznowienia na 1280×720 i 1024×768, z kontrolą konsoli, sieci, layoutu i trwałości slotu; warianty obu nagród oraz równoważność dalszego przebiegu pokrywa E2E.
 - Review: wymagane read-only review granicy `core`/`application`/`platform`, kompletności checkpointu, walidacji danych i braku możliwości przerzucania oferty.
 
-### Zależności, ryzyka i TODO
+### Zależności, decyzje i ryzyka
 
 - Zależność: Milestone 10.
-- `TODO: [przed implementacją Milestone 11]` zatwierdzić dokładny klucz storage, dyskryminator wersji i listę pól `RunCheckpointV1` na podstawie finalnego `RunState`.
-- `TODO: [przed implementacją Milestone 11]` zatwierdzić, czy łączny czas podsumowania oznacza wyłącznie aktywny czas gry, czy również przerwę między zapisem i wznowieniem; rekomendowany wariant wyklucza czas poza sesją.
+- Przyjęto: jeden stały klucz `localStorage` to `hoop-run:run-checkpoint`, a payload używa dyskryminatora `hoop-run.run-checkpoint`, `version: 1` i niezależnego `contentVersion: 1`.
+- Przyjęto: checkpoint przechowuje wyłącznie kanoniczny stan `intermission` określony w `docs/spec/first-run-loop.md`; nie zawiera aktywnego meczu, oferty, wyniku końcowego ani modelu widoku.
+- Przyjęto: podsumowanie mierzy aktywny czas gry w `elapsedActiveMs`, bez przerwy między zapisaniem i wznowieniem oraz bez pola czasu ściennego `savedAt`.
 - Ryzyko: zapis częściowego albo pochodnego stanu odtworzy inną kolejność RNG; checkpoint przechowuje kanoniczne dane, nie model widoku.
 - Ryzyko: bezpośrednie użycie `localStorage` w domenie złamie testowalność; dostęp jest wyłącznie przez port i adapter platformowy.
 

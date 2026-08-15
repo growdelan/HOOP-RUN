@@ -190,38 +190,46 @@ Rozkład `3/1/1` daje dominującemu zachowaniu 60% udziału, a każdemu pozosta�
 
 ## Czas runu
 
-PRD wymaga pokazania łącznego czasu i walidacji celu 25–35 minut, ale nie rozstrzyga, czy po wznowieniu należy doliczać przerwę spędzoną poza aplikacją.
+Łączny czas runu oznacza wyłącznie aktywny czas gry. Przerwa pomiędzy `Zapisz i wyjdź` a `Kontynuuj run` nie jest doliczana, ponieważ miara służy do oceny długości rozgrywki, a nie czasu ściennego.
 
-Niezależnie od wybranej polityki warstwa aplikacyjna otrzymuje zegar przez port i aktualizuje czas na kontrolowanych granicach faz lub sesji. `core` nie wywołuje `Date.now()` i nie używa czasu jako źródła rozstrzygnięć. Checkpoint przechowuje dane czasu wymagane przez zatwierdzony wariant.
-
-`TODO: [przed Milestone 11]` wybrać, czy podsumowanie pokazuje aktywny czas z wyłączeniem przerwy pomiędzy zapisaniem i wznowieniem, czy pełny czas ścienny. Rekomendowany wariant to aktywny czas, ponieważ odpowiada mierze długości rozgrywki.
+Warstwa aplikacyjna otrzymuje zegar przez port i aktualizuje czas na kontrolowanych granicach faz lub sesji. Checkpoint przechowuje zakumulowane `elapsedActiveMs`, a po wznowieniu rozpoczyna się nowy odcinek pomiaru. Podsumowanie sumuje zapisane i bieżące odcinki oraz zaokrągla czas do sekund dopiero w modelu widoku. `core` nie wywołuje `Date.now()`, nie używa czasu jako źródła rozstrzygnięć, a checkpoint nie zapisuje czasu ściennego `savedAt`.
 
 ## Checkpoint i trwałość
 
 ### Kontrakt domenowy
 
-`RunCheckpointV1` jest wersjonowanym, serializowalnym snapshotem kanonicznego stanu dostępnym wyłącznie w `intermission` po wyborze nagrody. Zawiera co najmniej:
+`RunCheckpointV1` jest wersjonowanym, serializowalnym snapshotem kanonicznego stanu dostępnym wyłącznie w `intermission` po wyborze nagrody. Jego kontrakt ma postać:
 
-- dyskryminator formatu i numer wersji,
-- seed oraz kanoniczny stan RNG,
-- indeks następnego przeciwnika,
-- składy obu talii wraz z nagrodami,
-- historię nagród i wyniki zakończonych meczów,
-- dane czasu wymagane przez zatwierdzoną politykę pomiaru,
-- pola integralności potrzebne do odrzucenia częściowego stanu.
+```ts
+interface RunCheckpointV1 {
+  readonly kind: "hoop-run.run-checkpoint";
+  readonly version: 1;
+  readonly contentVersion: 1;
+  readonly elapsedActiveMs: number;
+  readonly run: RunCheckpointStateV1;
+}
+```
 
-Kodek i walidacja są czyste oraz niezależne od API przeglądarki. Niepoprawny JSON, brak pola, nieznany identyfikator karty lub przeciwnika albo nieobsługiwana wersja zwracają jawny błąd i nigdy nie tworzą częściowo zaufanego `RunState`.
+`RunCheckpointStateV1` zawiera:
+
+- `initialSeed`, obowiązkowy kanoniczny `rngState` i `phase: "intermission"`,
+- indeks następnego przeciwnika i uporządkowaną listę przeciwników,
+- początkowe i aktualne składy obu talii,
+- katalog nagród, profile przeciwników i konfigurację meczu,
+- historię wybranych nagród i wyniki zakończonych meczów.
+
+Checkpoint nie zawiera `activeMatch`, `rewardOffer`, `outcome`, `savedAt` ani modelu widoku. `contentVersion` jest niezależny od wersji formatu i pozwala odrzucić zapis po niekompatybilnej zmianie znaczenia kart, profili albo konfiguracji zawartości.
+
+Kodek i walidacja są czyste oraz niezależne od API przeglądarki. Niepoprawny JSON, brak pola, nieznany identyfikator karty lub przeciwnika, nieobsługiwana wersja formatu lub zawartości zwracają jawny błąd i nigdy nie tworzą częściowo zaufanego `RunState`. Walidacja integralności sprawdza także dozwolony indeks następnego etapu, zgodność liczby wyników i nagród, talie wynikające z wybranych nagród oraz dokładnie jednego właściciela RNG. Checksum nie jest częścią V1, ponieważ nie zapewnia bezpieczeństwa lokalnego slotu ponad ścisłą walidację strukturalną i domenową.
 
 ### Adapter przeglądarkowy
 
 - `application` definiuje port jednego repozytorium checkpointu.
-- `platform` implementuje port przez jeden jawny klucz `localStorage`.
+- `platform` implementuje port przez jeden stały klucz `localStorage`: `hoop-run:run-checkpoint`. Klucz nie zawiera wersji, aby przyszła aplikacja mogła wykryć starszy zapis i jawnie zgłosić brak obsługi.
 - Odczyt, zapis i usunięcie zwracają typowany rezultat; wyjątek storage nie może wywrócić sceny.
 - `Zapisz i wyjdź` utrwala checkpoint i wraca do startu dopiero po udanym zapisie.
 - Porażka albo trzecie zwycięstwo usuwa aktywny slot po utworzeniu końcowego podsumowania.
 - Nowy run przy istniejącym slocie wymaga potwierdzenia przed zastąpieniem.
-
-`TODO: [przed Milestone 11]` zatwierdzić dokładny klucz storage, dyskryminator, wersję i finalną listę pól po ustabilizowaniu `RunState`.
 
 ## Warstwa aplikacyjna i prezentacja
 
