@@ -1,6 +1,6 @@
 ---
 name: codex-flow-run-roadmap
-description: Wykonaj w kontrolowanej pętli wszystkie wykonalne milestone'y ze statusem planned w ROADMAP.md HOOP-RUN. Użyj, gdy użytkownik jawnie prosi o realizację całej roadmapy, wszystkich zaplanowanych milestone'ów albo autonomiczną pracę aż do ukończenia planu lub napotkania blokera.
+description: Wykonaj w kontrolowanej pętli wszystkie wykonalne milestone'y ze statusem planned w ROADMAP.md HOOP-RUN przez sekwencyjną implementację agentem luna_implementer i niezależne review świeżym agentem sol_reviewer. Użyj, gdy użytkownik jawnie prosi o realizację całej roadmapy, wszystkich zaplanowanych milestone'ów albo autonomiczną pracę aż do ukończenia planu lub napotkania blokera.
 ---
 
 # Wykonanie roadmapy
@@ -11,24 +11,34 @@ description: Wykonaj w kontrolowanej pętli wszystkie wykonalne milestone'y ze s
 2. Sprawdź stan repozytorium i nie włączaj do pracy niepowiązanych zmian użytkownika.
 3. Zbierz milestone'y `planned` w kolejności zależności. Pomiń wpisy szablonowe i zablokowane.
 4. Przed implementacją pokaż krótki plan kolejności. Nie czekaj na dodatkowe potwierdzenie, jeśli polecenie jest jednoznaczne.
-5. Używaj subagentów tylko wtedy, gdy użytkownik lub aktywne instrukcje zezwalają na delegację i zadanie jest niezależne. Implementację i wspólne pliki prowadź sekwencyjnie.
+5. Główny wątek pełni rolę koordynatora. Nie implementuje kodu; deleguje pracę agentom opisanym poniżej i scala ich wyniki.
+
+## Agenci i kolejność
+
+- Używaj Custom Agenta `luna_implementer` do implementacji i wszystkich późniejszych poprawek. Jego konfiguracja wymusza `gpt-5.6-luna` z `model_reasoning_effort = "max"`.
+- Używaj Custom Agenta `sol_reviewer` do niezależnego review. Jego konfiguracja wymusza `gpt-5.6-sol` z `model_reasoning_effort = "xhigh"` i tryb read-only.
+- Agenci pracują sekwencyjnie. Nie uruchamiaj implementacji i review równolegle.
+- Dla każdego milestone'u utwórz jeden wątek `luna_implementer` i zachowaj go do końca pracy nad tym milestone'em.
+- Po implementacji oraz po każdej rundzie poprawek utwórz nowy, świeży wątek `sol_reviewer`. Nie wznawiaj wcześniejszego reviewera.
+- Nie zastępuj wskazanych Custom Agents agentami wbudowanymi ani pracą głównego wątku.
 
 ## Pętla milestone'ów
 
 Dla każdego milestone'u:
 
 1. Potwierdź cel, hipotezę, zakres, poza zakresem, kryteria, walidację i warunki zatrzymania.
-2. Oznacz milestone jako `in_progress` i zaktualizuj krótki stan w `STATUS.md`.
-3. Zaimplementuj jego zakres zgodnie z `$codex-flow-implement-milestone`.
-4. Uruchom walidację obszaru oraz `./scripts/verify.sh`.
-5. Dla widocznej zmiany wykonaj `$codex-flow-playtest`.
-6. Wykonaj read-only review zgodnie z `$codex-flow-review`; użyj profilu `reviewer`, gdy jest to dozwolone i daje niezależne spojrzenie.
-7. Popraw problemy mieszczące się w zakresie zgodnie z `$codex-flow-address-review`, ponów walidację i playtest.
-8. Oznacz milestone jako `done` dopiero po spełnieniu kryteriów, pozytywnej walidacji, wymaganym playteście i usunięciu problemów blokujących.
-9. Zaktualizuj `STATUS.md`, sprawdź rozmiar kontekstu i przejdź do następnego `planned`.
+2. Utwórz wątek `luna_implementer`. Przekaż pełny zakres milestone'u, kryteria akceptacji, właściwy kontekst z dokumentacji, stan bazowy repozytorium, wcześniejsze zmiany użytkownika, ryzyka i wymagane walidacje.
+3. Poleć implementerowi oznaczyć milestone jako `in_progress`, zaktualizować zwięzły stan w `STATUS.md` i wykonać `$codex-flow-implement-milestone`. Poczekaj na zakończenie implementacji, testów i wymaganego playtestu.
+4. Zbierz aktualny diff, podsumowanie implementera oraz wyniki walidacji. Utwórz świeży wątek `sol_reviewer` i poleć mu wykonać `$codex-flow-review` dla całego diffu.
+5. Wymagaj raportu zakończonego dokładnie jedną decyzją: `DECISION: APPROVED` albo `DECISION: CHANGES_REQUIRED`.
+6. Gdy decyzja to `CHANGES_REQUIRED`, przekaż pełny raport do tego samego wątku `luna_implementer`. Poleć wykonać `$codex-flow-address-review`, ponowić walidację oraz wymagany playtest i odpowiedzieć na każde znalezisko.
+7. Po poprawkach utwórz kolejny świeży wątek `sol_reviewer`. Przekaż pierwotne kryteria, wcześniejsze znaleziska i odpowiedzi implementera, pełny aktualny diff oraz aktualne wyniki walidacji. Reviewer ponownie ocenia cały diff.
+8. Powtarzaj sekwencję `ten sam luna_implementer -> świeży sol_reviewer` do `APPROVED`, maksymalnie przez trzy rundy poprawek. Jeśli po trzeciej rundzie nadal jest `CHANGES_REQUIRED`, zatrzymaj workflow i zgłoś nierozwiązane problemy.
+9. Po `APPROVED` poleć temu samemu implementerowi oznaczyć milestone jako `done` wyłącznie po spełnieniu kryteriów, pozytywnej walidacji i wymaganym playteście oraz zaktualizować `STATUS.md` bez innych zmian kodu.
+10. Sprawdź końcowy diff, status repozytorium i rozmiar kontekstu, po czym przejdź do następnego `planned`.
 
 ## Warunki zatrzymania
 
-Zatrzymaj pętlę i zachowaj bezpieczny stan, gdy wymaganie istotnie zmienia produkt, walidacja lub playtest nie przechodzi i naprawa wykracza poza zakres, review wykryje nierozwiązany problem blokujący, brakuje zależności, występują nieoczekiwane zmiany albo użytkownik zmieni zadanie.
+Zatrzymaj pętlę i zachowaj bezpieczny stan, gdy wymaganie istotnie zmienia produkt, walidacja lub playtest nie przechodzi i naprawa wykracza poza zakres, review wykryje nierozwiązany problem blokujący, limit trzech rund poprawek zostanie wyczerpany, brakuje zależności, występują nieoczekiwane zmiany albo użytkownik zmieni zadanie.
 
-Oznacz milestone jako `blocked` tylko dla rzeczywistej blokady i zapisz konkretną decyzję potrzebną do wznowienia. Po wyczerpaniu milestone'ów uporządkuj dokumentację, uruchom pełną walidację i podsumuj testy, playtesty, review i ryzyka. Nie wykonuj commita ani pusha bez osobnego polecenia.
+Oznacz milestone jako `blocked` tylko dla rzeczywistej blokady i zapisz konkretną decyzję potrzebną do wznowienia. Nie ogłaszaj sukcesu bez `DECISION: APPROVED`, spełnionych kryteriów i pozytywnej walidacji. Po wyczerpaniu milestone'ów uporządkuj dokumentację, uruchom pełną walidację i podsumuj testy, playtesty, liczbę rund review, końcowe decyzje i ryzyka. Nie wykonuj commita ani pusha bez osobnego polecenia.
