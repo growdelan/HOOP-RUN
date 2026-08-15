@@ -2,12 +2,12 @@
 
 ## Status i źródła
 
-- Status: zweryfikowane zakresy PRD 000 i PRD 001 oraz zaplanowany zakres PRD 002.
+- Status: zweryfikowane zakresy PRD 000 i PRD 001; PRD 002 ma ukończone Milestone'y 8–11, a Milestone 12 pozostaje `planned`.
 - Gwiazda północna produktu: `docs/product-vision.md`.
 - Źródła wymagań: `prd/000-initial-prd.md`, `prd/001-full-match.md` i `prd/002-first-run-loop.md`.
 - Data utworzenia: 2026-08-14.
 - Ostatnia aktualizacja: 2026-08-15.
-- Zakres obowiązywania: fundament produktu, zweryfikowany pełny mecz 3 na 3 oraz zaplanowany pierwszy trzy-meczowy run.
+- Zakres obowiązywania: fundament produktu, zweryfikowany pełny mecz 3 na 3 oraz wdrażany pierwszy trzy-meczowy run.
 - Walidacja zakresu: `docs/validation/prd-000-validation.md` i `docs/validation/prd-001-validation.md`; obie bramki zakończone wynikiem `proceed`.
 
 ## Cel produktu
@@ -40,7 +40,7 @@ Główna hipoteza PRD 001:
 
 Bramka PRD 001 ma wynik `proceed`: zewnętrzny pierwszy mecz trwał 10 minut, zakończył się 8:11, a tester rozumiał decyzje po pisemnym objaśnieniu zasad i chciał rewanżu.
 
-Zaplanowany zakres PRD 002 dodaje pierwszy zamknięty run: trzy mecze z `Fundamentals`, `Perimeter Crew` i `Paint Kings`, obowiązkowy wybór jednej z trzech kart po pierwszych dwóch zwycięstwach, cztery nowe karty, krótki onboarding oraz jeden ręczny lokalny checkpoint między meczami. Szczegółowy kontrakt znajduje się w `docs/spec/first-run-loop.md`.
+Zakres PRD 002 dodaje pierwszy zamknięty run: trzy mecze z `Fundamentals`, `Perimeter Crew` i `Paint Kings`, obowiązkowy wybór jednej z trzech kart po pierwszych dwóch zwycięstwach, cztery nowe karty, krótki onboarding oraz jeden ręczny lokalny checkpoint między meczami. Milestone'y 8–11 są ukończone, a walidacja hipotezy w Milestone 12 pozostaje `planned`. Szczegółowy kontrakt znajduje się w `docs/spec/first-run-loop.md`.
 
 Główna hipoteza PRD 002:
 
@@ -233,7 +233,7 @@ Szczegółowy kontrakt znajduje się w `docs/spec/first-run-loop.md`.
 
 Run prowadzi liniowo przez dokładnie trzy profile. Porażka kończy run, pierwsze dwa zwycięstwa generują po jednej deterministycznej ofercie, a trzecie zwycięstwo kończy run bez nagrody. Oferta jest przechowywana w stanie i zawiera co najmniej jedną kartę obu ról. Wybrana karta zostaje dopisana do właściwej talii na resztę runu; nowy run odtwarza talie startowe.
 
-Wersjonowany checkpoint jest dozwolony wyłącznie po wyborze nagrody, przed następnym meczem. Czysty kodek waliduje dane, `application` definiuje port jednego slotu, a `platform` implementuje go w `localStorage`. Czas runu pochodzi z wstrzykniętego zegara aplikacyjnego i nie wpływa na gameplay ani RNG; sposób liczenia przerwy po zapisaniu pozostaje TODO przed Milestone 11.
+Wersjonowany checkpoint jest dozwolony wyłącznie po wyborze nagrody, przed następnym meczem. Czysty kodek waliduje dane, `application` definiuje port jednego slotu, a `platform` implementuje go pod stałym kluczem `hoop-run:run-checkpoint`. Payload używa `kind: "hoop-run.run-checkpoint"`, `version: 1` i `contentVersion: 1`. Czas runu pochodzi z wstrzykniętego zegara aplikacyjnego i nie wpływa na gameplay ani RNG; checkpoint przechowuje `elapsedActiveMs`, a przerwa poza sesją nie jest wliczana do aktywnego czasu.
 
 ## Architektura i przepływ danych
 
@@ -312,7 +312,7 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 
 - Decyzja techniczna: czas pochodzi z wstrzykniętego zegara i jest rejestrowany przy kontrolowanych granicach sesji; reguły nie odczytują czasu bezpośrednio.
 - Uzasadnienie: miara 25–35 minut ma opisywać rozgrywkę, a czas nie może wpływać na deterministyczność zasad.
-- Konsekwencje: `core` nie wywołuje `Date.now()` i nie używa czasu jako źródła losowości; wybór między aktywnym czasem a pełnym czasem ściennym pozostaje TODO przed Milestone 11.
+- Konsekwencje: `core` nie wywołuje `Date.now()` i nie używa czasu jako źródła losowości; mierzony jest wyłącznie aktywny czas sesji w `elapsedActiveMs`, bez przerwy pomiędzy zapisaniem i wznowieniem.
 - Dotyczy: PRD 002, milestone'y 10–12.
 
 ## Dostępność i informacja zwrotna
@@ -361,7 +361,7 @@ Poniższe decyzje i pytania pozostają częścią kontrolowanego planu:
 - Przyjęto przed Milestone 9: `Hedge` kosztuje łącznie 3 sekundy, daje `-2 Opponent Advantage` i `+6 contest` na zasłonie kosztem odsłonięcia screenera; `Close Out` kosztuje 2 sekundy i daje `+12 contest` na czysty rzut obwodowy albo tylko `+4 contest` oraz `+1 Opponent Advantage`, gdy atak ma już przewagę.
 - Przyjęto przed Milestone 9: nagroda należy do pierwszego cyklu właściwej talii następnego meczu i jest dobierana przed pierwszym przetasowaniem, jeżeli cykl zostanie zużyty; nie jest przypinana do pierwszej ręki ani wyniku.
 - Przyjęto przed Milestone 9: profile używają wyłącznie istniejących planów, akcji i intencji. `Fundamentals` ma wagi `1/1/1`; `Perimeter Crew` preferuje `Quick Three` i `Deny Perimeter` wagą 3; `Paint Kings` preferuje `Pick & Roll` i `Protect Paint` wagą 3; pozostałe wagi wynoszą 1.
-- TODO przed Milestone 11: zatwierdzić finalny schemat `RunCheckpointV1`, klucz storage i znaczenie aktywnego czasu.
+- Przyjęto przed Milestone 11: `RunCheckpointV1` używa `kind: "hoop-run.run-checkpoint"`, `version: 1`, `contentVersion: 1`, pól `elapsedActiveMs` i `shotClock` oraz kanonicznego stanu `intermission`; jeden slot ma klucz `hoop-run:run-checkpoint`, przerwa poza sesją nie wlicza się do aktywnego czasu, a zapisany zegar akcji ma pierwszeństwo przed parametrem kolejnej sesji.
 - TODO przed zbiórkami: ustalić granicę posiadania oraz przejście do `Transition`.
 - TODO przed metaprogresją: zdefiniować odblokowania bez trwałej przewagi statystycznej.
 

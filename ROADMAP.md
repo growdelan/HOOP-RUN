@@ -165,7 +165,7 @@ Przepływ `mecz → wybór jednej z trzech kart → trudniejszy mecz` jest czyte
 - Ryzyko: pełny run spowalnia iterację; kontrolowane seedy i E2E pokrywają macierz, a smoke techniczny sprawdza reprezentatywny rzeczywisty przepływ bez jej ręcznego dublowania.
 - Ryzyko: onboarding może pozostać niejasny mimo poprawnej treści i layoutu; subiektywny feedback gracza jest mile widziany, ale nie blokuje milestone'u.
 
-## Milestone 11: Checkpoint przeglądarkowy i odporne wznowienie (`planned`)
+## Milestone 11: Checkpoint przeglądarkowy i odporne wznowienie (`done`)
 
 ### Cel
 

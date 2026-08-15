@@ -10,6 +10,7 @@ import type {
 import { PRODUCT_NAME, PRODUCT_TAGLINE } from "../../content/brand";
 import type { PlayerId, Zone } from "../../core/index";
 import type { RuntimeOptions } from "../../platform/runtimeOptions";
+import type { RunCheckpointRepository } from "../../application/RunCheckpointRepository.ts";
 
 const WIDTH = 1280;
 const HEIGHT = 720;
@@ -30,9 +31,9 @@ export class PossessionScene extends Phaser.Scene {
   private readonly session: RunSession;
   private readonly testMode: boolean;
 
-  public constructor(options: RuntimeOptions) {
+  public constructor(options: RuntimeOptions, checkpointRepository: RunCheckpointRepository) {
     super("possession");
-    this.session = new RunSession(options.seed, options.shotClock);
+    this.session = new RunSession(options.seed, options.shotClock, undefined, checkpointRepository);
     this.testMode = options.testMode;
   }
 
@@ -52,6 +53,7 @@ export class PossessionScene extends Phaser.Scene {
     }
     this.drawBackground();
     if (run.screen === "start") this.drawStart();
+    else if (run.screen === "confirmNewRun") this.drawConfirmNewRun(run);
     else if (run.screen === "howTo") this.drawHowTo(run);
     else if (run.screen === "reward") this.drawReward(run);
     else if (run.screen === "intermission") this.drawIntermission(run);
@@ -61,6 +63,9 @@ export class PossessionScene extends Phaser.Scene {
       this.drawCourt(run.match);
       this.drawInformationPanel(run.match);
       this.drawCards(run.match);
+    }
+    if (run.persistenceUnavailable && (run.screen === "match" || run.screen === "reward")) {
+      this.add.text(1120, 78, "TRYB BEZ ZAPISU", textStyle("#fecaca", "10px", true)).setOrigin(0.5);
     }
   }
 
@@ -73,6 +78,7 @@ export class PossessionScene extends Phaser.Scene {
   }
 
   private drawStart(): void {
+    const run = this.session.getViewModel();
     this.add.text(640, 128, PRODUCT_NAME, textStyle("#f8fafc", "58px", true))
       .setOrigin(0.5)
       .setLetterSpacing(5);
@@ -83,16 +89,57 @@ export class PossessionScene extends Phaser.Scene {
       .setLetterSpacing(2);
     this.add.text(640, 330, "Fundamentals → Perimeter Crew → Paint Kings", textStyle("#cbd5e1", "18px"))
       .setOrigin(0.5);
-    this.drawButton(490, 416, 300, 58, "ROZPOCZNIJ NOWY RUN", () => {
+    const hasSlotNotice = run.canContinue || run.checkpointError !== undefined || run.persistenceError !== undefined;
+    this.drawButton(490, hasSlotNotice ? 382 : 416, 300, 58, "ROZPOCZNIJ NOWY RUN", () => {
       this.session.dispatch({ type: "startRun" });
       this.queueRender();
     }, 0x1d4ed8);
-    this.drawButton(540, 494, 200, 48, "JAK GRAĆ", () => {
+    if (run.canContinue) {
+      this.drawButton(490, 456, 300, 58, "KONTYNUUJ RUN", () => {
+        this.session.dispatch({ type: "continueRun" });
+        this.queueRender();
+      }, 0x047857);
+    }
+    if (run.checkpointError !== undefined) {
+      this.add.text(640, 462, run.checkpointError, {
+        ...textStyle("#fecaca", "12px", true),
+        align: "center",
+        wordWrap: { width: 700 },
+      }).setOrigin(0.5);
+      this.drawButton(490, 500, 300, 48, "ODRZUĆ USZKODZONY ZAPIS", () => {
+        this.session.dispatch({ type: "discardCheckpoint" });
+        this.queueRender();
+      }, 0x991b1b);
+    } else if (run.persistenceError !== undefined) {
+      this.add.text(640, 480, run.persistenceError, {
+        ...textStyle("#fecaca", "12px", true),
+        align: "center",
+        wordWrap: { width: 700 },
+      }).setOrigin(0.5);
+    }
+    this.drawButton(540, hasSlotNotice ? 570 : 494, 200, 48, "JAK GRAĆ", () => {
       this.session.dispatch({ type: "openHowTo" });
       this.queueRender();
     }, 0x334155);
-    this.add.text(640, 610, "Sterowanie: mysz · postęp nie jest zapisywany po przeładowaniu", textStyle("#64748b", "11px"))
+    this.add.text(640, 650, "Sterowanie: mysz · checkpoint jest dostępny między meczami", textStyle("#64748b", "11px"))
       .setOrigin(0.5);
+  }
+
+  private drawConfirmNewRun(run: RunViewModel): void {
+    this.drawRunTitle(run, "ZASTĄPIĆ CHECKPOINT?", "Nowy run bezpowrotnie zastąpi zapisany postęp.");
+    this.add.text(640, 300, "Zapisany run pozostanie bez zmian, dopóki nie potwierdzisz.", textStyle("#dbeafe", "16px"))
+      .setOrigin(0.5);
+    if (run.persistenceError !== undefined) {
+      this.add.text(640, 360, run.persistenceError, textStyle("#fecaca", "13px", true)).setOrigin(0.5);
+    }
+    this.drawButton(330, 470, 300, 58, "ANULUJ", () => {
+      this.session.dispatch({ type: "cancelStartRun" });
+      this.queueRender();
+    }, 0x334155);
+    this.drawButton(650, 470, 300, 58, "ZASTĄP I ROZPOCZNIJ", () => {
+      this.session.dispatch({ type: "confirmStartRun" });
+      this.queueRender();
+    }, 0x991b1b);
   }
 
   private drawHowTo(run: RunViewModel): void {
@@ -173,10 +220,22 @@ export class PossessionScene extends Phaser.Scene {
       align: "center",
       wordWrap: { width: 720 },
     }).setOrigin(0.5);
-    this.drawButton(490, 548, 300, 58, "ROZPOCZNIJ NASTĘPNY MECZ", () => {
+    if (run.persistenceError !== undefined) {
+      this.add.text(640, 505, run.persistenceError, textStyle("#fecaca", "12px", true)).setOrigin(0.5);
+    }
+    this.drawButton(300, 548, 380, 58, "ROZPOCZNIJ NASTĘPNY MECZ", () => {
       this.session.dispatch({ type: "startNextMatch" });
       this.queueRender();
     }, 0x1d4ed8);
+    if (run.persistenceUnavailable) {
+      this.add.rectangle(850, 577, 260, 58, 0x334155, 0.55);
+      this.add.text(850, 577, "ZAPIS NIEDOSTĘPNY", textStyle("#cbd5e1", "11px", true)).setOrigin(0.5);
+    } else {
+      this.drawButton(720, 548, 260, 58, "ZAPISZ I WYJDŹ", () => {
+        this.session.dispatch({ type: "saveAndExit" });
+        this.queueRender();
+      }, 0x047857);
+    }
   }
 
   private drawRunSummary(run: RunViewModel): void {
@@ -198,6 +257,9 @@ export class PossessionScene extends Phaser.Scene {
     this.add.text(650, 356, formatDeck(summary.offenseDeck), { ...textStyle("#cbd5e1", "11px"), wordWrap: { width: 540 } });
     this.add.text(650, 430, `KOŃCOWA TALIA OBRONY (${deckSize(summary.defenseDeck)})`, textStyle("#4ade80", "11px", true));
     this.add.text(650, 456, formatDeck(summary.defenseDeck), { ...textStyle("#cbd5e1", "11px"), wordWrap: { width: 540 } });
+    if (run.persistenceError !== undefined) {
+      this.add.text(640, 550, run.persistenceError, textStyle("#fecaca", "12px", true)).setOrigin(0.5);
+    }
     this.drawButton(490, 596, 300, 56, "NOWY RUN · CZYSTE TALIE", () => {
       this.session.dispatch({ type: "resetRun" });
       this.queueRender();

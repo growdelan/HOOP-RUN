@@ -7,9 +7,13 @@ import { PROTOTYPE_DEFENSE_CARDS } from "../content/prototypeDefense.ts";
 import { PROTOTYPE_CARDS } from "../content/prototypePossession.ts";
 import { PROTOTYPE_RUN_SETUP } from "../content/prototypeRun.ts";
 import {
+  createRunCheckpoint,
   createRun,
+  decodeRunCheckpoint,
+  encodeRunCheckpoint,
   reduceRun,
   resetRun,
+  restoreRunFromCheckpoint,
 } from "../core/index.ts";
 import type {
   CardId,
@@ -19,12 +23,18 @@ import type {
   RunMatchResult,
   RunOpponentId,
   RunState,
+  RunCheckpointV1,
   SelectedRunReward,
 } from "../core/index.ts";
+import {
+  EMPTY_RUN_CHECKPOINT_REPOSITORY,
+} from "./RunCheckpointRepository.ts";
+import type { RunCheckpointRepository } from "./RunCheckpointRepository.ts";
 
 export type RunScreen =
   | "start"
   | "howTo"
+  | "confirmNewRun"
   | "match"
   | "reward"
   | "intermission"
@@ -34,6 +44,11 @@ export type RunUiCommand =
   | { readonly type: "openHowTo" }
   | { readonly type: "closeHowTo" }
   | { readonly type: "startRun" }
+  | { readonly type: "confirmStartRun" }
+  | { readonly type: "cancelStartRun" }
+  | { readonly type: "continueRun" }
+  | { readonly type: "discardCheckpoint" }
+  | { readonly type: "saveAndExit" }
   | { readonly type: "chooseReward"; readonly offerIndex: 0 | 1 | 2 }
   | { readonly type: "startNextMatch" }
   | { readonly type: "resetRun" };
@@ -101,6 +116,11 @@ export interface RunViewModel {
   readonly rewards: readonly RunSelectedRewardView[];
   readonly results: readonly RunMatchResult[];
   readonly elapsedSeconds: number;
+  readonly canContinue: boolean;
+  readonly needsNewRunConfirmation: boolean;
+  readonly persistenceUnavailable: boolean;
+  readonly checkpointError?: string;
+  readonly persistenceError?: string;
   readonly summary?: RunSummaryView;
 }
 
@@ -112,13 +132,23 @@ export class RunSession {
   private matchSession?: MatchSession;
   private selectedRewardView?: RunRewardView;
   private startedAt?: number;
-  private completedElapsedSeconds?: number;
+  private elapsedActiveMs = 0;
+  private completedElapsedMs?: number;
+  private pendingCheckpoint?: RunCheckpointV1;
+  private checkpointError?: string;
+  private persistenceError?: string;
+  private persistenceUnavailableValue = false;
+  private activeShotClock: number;
 
   public constructor(
     private readonly seed: number,
-    private readonly shotClock: number = 14,
+    private readonly configuredShotClock: number = 14,
     private readonly clock: Clock = () => performance.now(),
-  ) {}
+    private readonly checkpointRepository: RunCheckpointRepository = EMPTY_RUN_CHECKPOINT_REPOSITORY,
+  ) {
+    this.activeShotClock = configuredShotClock;
+    this.loadCheckpointSlot();
+  }
 
   public get state(): RunState | undefined {
     return this.runState;
@@ -141,6 +171,11 @@ export class RunSession {
       rewards: state?.selectedRewards.map(selectedRewardView) ?? [],
       results: state?.matchResults ?? [],
       elapsedSeconds,
+      canContinue: this.pendingCheckpoint !== undefined,
+      needsNewRunConfirmation: this.screenValue === "confirmNewRun",
+      persistenceUnavailable: this.persistenceUnavailableValue,
+      ...(this.checkpointError === undefined ? {} : { checkpointError: this.checkpointError }),
+      ...(this.persistenceError === undefined ? {} : { persistenceError: this.persistenceError }),
     };
 
     if (this.screenValue === "match" && this.matchSession !== undefined) {
@@ -186,7 +221,22 @@ export class RunSession {
         if (this.screenValue === "howTo") this.screenValue = "start";
         return;
       case "startRun":
-        if (this.screenValue === "start") this.startFreshRun(false);
+        if (this.screenValue === "start") this.requestFreshRun();
+        return;
+      case "confirmStartRun":
+        if (this.screenValue === "confirmNewRun") this.confirmFreshRun();
+        return;
+      case "cancelStartRun":
+        if (this.screenValue === "confirmNewRun") this.screenValue = "start";
+        return;
+      case "continueRun":
+        if (this.screenValue === "start") this.continueRun();
+        return;
+      case "discardCheckpoint":
+        if (this.screenValue === "start") this.discardCheckpoint();
+        return;
+      case "saveAndExit":
+        this.saveAndExit();
         return;
       case "chooseReward":
         this.chooseReward(command.offerIndex);
@@ -195,7 +245,7 @@ export class RunSession {
         this.startNextMatch();
         return;
       case "resetRun":
-        if (this.screenValue === "summary") this.startFreshRun(true);
+        if (this.screenValue === "summary") this.resetAfterSummary();
         return;
     }
   }
@@ -217,11 +267,119 @@ export class RunSession {
       resetExisting && this.runState !== undefined
         ? resetRun(this.runState, this.seed)
         : createRun(PROTOTYPE_RUN_SETUP, this.seed);
+    this.activeShotClock = this.configuredShotClock;
     this.startedAt = this.clock();
-    this.completedElapsedSeconds = undefined;
+    this.elapsedActiveMs = 0;
+    this.completedElapsedMs = undefined;
+    if (!this.persistenceUnavailableValue) this.persistenceError = undefined;
     this.selectedRewardView = undefined;
     this.screenValue = "match";
     this.createMatchSession();
+  }
+
+  private requestFreshRun(): void {
+    if (this.checkpointError !== undefined) return;
+    if (this.pendingCheckpoint !== undefined) {
+      this.screenValue = "confirmNewRun";
+      return;
+    }
+    this.startFreshRun(false);
+  }
+
+  private confirmFreshRun(): void {
+    if (this.persistenceUnavailableValue) {
+      this.pendingCheckpoint = undefined;
+      this.checkpointError = undefined;
+      this.startFreshRun(false);
+      return;
+    }
+    const removed = this.checkpointRepository.remove();
+    if (!removed.ok) {
+      this.disablePersistence(removed.error.message);
+      this.startFreshRun(false);
+      return;
+    }
+    this.pendingCheckpoint = undefined;
+    this.checkpointError = undefined;
+    this.persistenceError = undefined;
+    this.startFreshRun(false);
+  }
+
+  private continueRun(): void {
+    const checkpoint = this.pendingCheckpoint;
+    if (checkpoint === undefined) return;
+    this.runState = restoreRunFromCheckpoint(checkpoint);
+    this.activeShotClock = checkpoint.shotClock;
+    this.elapsedActiveMs = checkpoint.elapsedActiveMs;
+    this.startedAt = this.clock();
+    this.completedElapsedMs = undefined;
+    this.persistenceError = undefined;
+    const reward = this.runState.selectedRewards.at(-1);
+    this.selectedRewardView = reward === undefined ? undefined : rewardView(reward);
+    this.screenValue = "intermission";
+  }
+
+  private saveAndExit(): void {
+    const state = this.runState;
+    if (this.screenValue !== "intermission" || state === undefined) return;
+    if (this.persistenceUnavailableValue) return;
+    const elapsedActiveMs = this.liveElapsedMs();
+    const created = createRunCheckpoint(
+      state,
+      elapsedActiveMs,
+      PROTOTYPE_RUN_SETUP,
+      this.activeShotClock,
+    );
+    if (!created.ok) {
+      this.persistenceError = created.error.message;
+      return;
+    }
+    const written = this.checkpointRepository.write(encodeRunCheckpoint(created.value));
+    if (!written.ok) {
+      this.disablePersistence(written.error.message);
+      return;
+    }
+    this.pendingCheckpoint = created.value;
+    this.runState = undefined;
+    this.matchSession = undefined;
+    this.selectedRewardView = undefined;
+    this.startedAt = undefined;
+    this.elapsedActiveMs = 0;
+    this.completedElapsedMs = undefined;
+    this.persistenceError = undefined;
+    this.checkpointError = undefined;
+    this.screenValue = "start";
+  }
+
+  private discardCheckpoint(): void {
+    if (this.persistenceUnavailableValue) {
+      this.pendingCheckpoint = undefined;
+      this.checkpointError = undefined;
+      return;
+    }
+    const removed = this.checkpointRepository.remove();
+    if (!removed.ok) {
+      this.disablePersistence(removed.error.message);
+      return;
+    }
+    this.pendingCheckpoint = undefined;
+    this.checkpointError = undefined;
+    this.persistenceError = undefined;
+  }
+
+  private loadCheckpointSlot(): void {
+    const loaded = this.checkpointRepository.read();
+    if (!loaded.ok) {
+      this.disablePersistence(loaded.error.message);
+      return;
+    }
+    if (loaded.value === null) return;
+    const decoded = decodeRunCheckpoint(loaded.value, PROTOTYPE_RUN_SETUP);
+    if (!decoded.ok) {
+      this.checkpointError = decoded.error.message;
+      return;
+    }
+    this.pendingCheckpoint = decoded.value;
   }
 
   private chooseReward(index: 0 | 1 | 2): void {
@@ -257,7 +415,7 @@ export class RunSession {
       }),
       advance: () => this.updateMatch({ type: "advanceMatch" }),
     };
-    this.matchSession = new MatchSession(match, this.shotClock, controller);
+    this.matchSession = new MatchSession(match, this.activeShotClock, controller);
   }
 
   private updateMatch(command:
@@ -272,18 +430,49 @@ export class RunSession {
     this.matchSession = undefined;
     this.screenValue = result.state.phase === "rewardSelection" ? "reward" : "summary";
     if (this.screenValue === "summary") {
-      this.completedElapsedSeconds = this.liveElapsedSeconds();
+      this.completedElapsedMs = this.liveElapsedMs();
+      if (this.persistenceUnavailableValue) return undefined;
+      const removed = this.checkpointRepository.remove();
+      if (!removed.ok) {
+        this.disablePersistence(removed.error.message);
+      } else {
+        this.pendingCheckpoint = undefined;
+        this.persistenceError = undefined;
+      }
     }
     return undefined;
   }
 
   private elapsedSeconds(): number {
-    return this.completedElapsedSeconds ?? this.liveElapsedSeconds();
+    return Math.floor((this.completedElapsedMs ?? this.liveElapsedMs()) / 1000);
   }
 
-  private liveElapsedSeconds(): number {
-    if (this.startedAt === undefined) return 0;
-    return Math.max(0, Math.floor((this.clock() - this.startedAt) / 1000));
+  private resetAfterSummary(): void {
+    if (this.persistenceUnavailableValue) {
+      this.startFreshRun(true);
+      return;
+    }
+    const removed = this.checkpointRepository.remove();
+    if (!removed.ok) {
+      this.disablePersistence(removed.error.message);
+      this.startFreshRun(true);
+      return;
+    }
+    this.pendingCheckpoint = undefined;
+    this.persistenceError = undefined;
+    this.startFreshRun(true);
+  }
+
+  private liveElapsedMs(): number {
+    if (this.startedAt === undefined) return this.elapsedActiveMs;
+    return this.elapsedActiveMs + Math.max(0, Math.floor(this.clock() - this.startedAt));
+  }
+
+  private disablePersistence(message: string): void {
+    this.persistenceUnavailableValue = true;
+    this.pendingCheckpoint = undefined;
+    this.checkpointError = undefined;
+    this.persistenceError = `TRYB BEZ ZAPISU · ${message}`;
   }
 }
 

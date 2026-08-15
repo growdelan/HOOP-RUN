@@ -2,7 +2,7 @@
 
 ## Status
 
-- Status: częściowo zaimplementowane — Milestone'y 8–10 ukończone, Milestone'y 11–12 pozostają `planned`.
+- Status: częściowo zaimplementowane — Milestone'y 8–11 ukończone, a Milestone 12 pozostaje `planned`.
 - Źródło: `prd/002-first-run-loop.md`.
 - Plan realizacji: Milestone'y 8–12 w `ROADMAP.md`.
 - Zależność: zweryfikowany pełny mecz z PRD 001 opisany w `docs/spec/full-match.md`.
@@ -206,6 +206,7 @@ interface RunCheckpointV1 {
   readonly version: 1;
   readonly contentVersion: 1;
   readonly elapsedActiveMs: number;
+  readonly shotClock: number;
   readonly run: RunCheckpointStateV1;
 }
 ```
@@ -220,13 +221,16 @@ interface RunCheckpointV1 {
 
 Checkpoint nie zawiera `activeMatch`, `rewardOffer`, `outcome`, `savedAt` ani modelu widoku. `contentVersion` jest niezależny od wersji formatu i pozwala odrzucić zapis po niekompatybilnej zmianie znaczenia kart, profili albo konfiguracji zawartości.
 
-Kodek i walidacja są czyste oraz niezależne od API przeglądarki. Niepoprawny JSON, brak pola, nieznany identyfikator karty lub przeciwnika, nieobsługiwana wersja formatu lub zawartości zwracają jawny błąd i nigdy nie tworzą częściowo zaufanego `RunState`. Walidacja integralności sprawdza także dozwolony indeks następnego etapu, zgodność liczby wyników i nagród, talie wynikające z wybranych nagród oraz dokładnie jednego właściciela RNG. Checksum nie jest częścią V1, ponieważ nie zapewnia bezpieczeństwa lokalnego slotu ponad ścisłą walidację strukturalną i domenową.
+`shotClock` przechowuje zatwierdzony zegar akcji bieżącego runu. Po wznowieniu zapisana wartość ma pierwszeństwo przed parametrem `clock` aktualnego URL, dzięki czemu legalność kart i dalsze wyniki pozostają funkcją checkpointu oraz kolejnych decyzji.
+
+Kodek i walidacja są czyste oraz niezależne od API przeglądarki. Niepoprawny JSON, brak pola, nieznany identyfikator karty lub przeciwnika, nieobsługiwana wersja formatu lub zawartości zwracają jawny błąd i nigdy nie tworzą częściowo zaufanego `RunState`. Walidacja integralności sprawdza także dozwolony indeks następnego etapu, zgodność liczby wyników i nagród, talie wynikające z wybranych nagród, punktację wynikającą z liczby trafień, ścisłą naprzemienność posiadań ze startem gracza oraz dokładnie jednego właściciela RNG. Checksum nie jest częścią V1, ponieważ nie zapewnia bezpieczeństwa lokalnego slotu ponad ścisłą walidację strukturalną i domenową.
 
 ### Adapter przeglądarkowy
 
 - `application` definiuje port jednego repozytorium checkpointu.
 - `platform` implementuje port przez jeden stały klucz `localStorage`: `hoop-run:run-checkpoint`. Klucz nie zawiera wersji, aby przyszła aplikacja mogła wykryć starszy zapis i jawnie zgłosić brak obsługi.
 - Odczyt, zapis i usunięcie zwracają typowany rezultat; wyjątek storage nie może wywrócić sceny.
+- Wyjątek podczas pozyskania, odczytu albo odrzucania uszkodzonego slotu zatrzaskuje do końca sesji tryb bez trwałości: slot jest porzucany wyłącznie w pamięci, nie są wykonywane późniejsze operacje zapisu lub usuwania, nowy run pozostaje grywalny, a UI stale informuje o braku zapisu.
 - `Zapisz i wyjdź` utrwala checkpoint i wraca do startu dopiero po udanym zapisie.
 - Porażka albo trzecie zwycięstwo usuwa aktywny slot po utworzeniu końcowego podsumowania.
 - Nowy run przy istniejącym slocie wymaga potwierdzenia przed zastąpieniem.

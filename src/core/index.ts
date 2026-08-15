@@ -44,4 +44,14 @@ export {
   reduceRun,
   resetRun,
 } from "./run.ts";
+export type * from "./runCheckpoint.ts";
+export {
+  createRunCheckpoint,
+  decodeRunCheckpoint,
+  encodeRunCheckpoint,
+  restoreRunFromCheckpoint,
+  RUN_CHECKPOINT_CONTENT_VERSION,
+  RUN_CHECKPOINT_KIND,
+  RUN_CHECKPOINT_VERSION,
+} from "./runCheckpoint.ts";
 export { categorizeShotScore, clampShotScore } from "./shotQuality.ts";

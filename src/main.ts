@@ -3,6 +3,7 @@ import "./styles.css";
 import { createGame } from "./application/createGame";
 import { attachGameTestBridge } from "./platform/gameTestBridge";
 import { parseRuntimeOptions } from "./platform/runtimeOptions";
+import { createLocalStorageRunCheckpointRepository } from "./platform/LocalStorageRunCheckpointRepository.ts";
 
 const gameContainer = document.querySelector<HTMLElement>("#game");
 
@@ -11,7 +12,10 @@ if (gameContainer === null) {
 }
 
 const runtimeOptions = parseRuntimeOptions(window.location.search);
-const game = createGame(gameContainer, runtimeOptions);
+const checkpointRepository = createLocalStorageRunCheckpointRepository(
+  () => window.localStorage,
+);
+const game = createGame(gameContainer, runtimeOptions, checkpointRepository);
 
 if (runtimeOptions.testMode) {
   attachGameTestBridge(game);

@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { RunSession } from "../../src/application/RunSession.ts";
 import type { MatchViewModel } from "../../src/application/MatchSession.ts";
+import type {
+  CheckpointStorageResult,
+  RunCheckpointRepository,
+} from "../../src/application/RunCheckpointRepository.ts";
 
 describe("RunSession", () => {
   it("prowadzi start i onboarding bez tworzenia runu przed kliknięciem", () => {
@@ -136,7 +140,311 @@ describe("RunSession", () => {
       count: 2,
     });
   });
+
+  it("zapisuje intermission, wznawia identyczny stan i nie dolicza przerwy poza sesją", () => {
+    let now = 1_000;
+    const repository = new MemoryCheckpointRepository();
+    const uninterrupted = new RunSession(2, 9, () => now, repository);
+    uninterrupted.dispatch({ type: "startRun" });
+    playUntilScreenChanges(uninterrupted, "prepared", "contextual");
+    const reward = uninterrupted.getViewModel().rewardOffer?.[0];
+    if (reward === undefined) throw new Error("Brak nagrody.");
+    uninterrupted.dispatch({ type: "chooseReward", offerIndex: reward.index });
+    const stateAtCheckpoint = uninterrupted.state;
+    now = 11_000;
+    uninterrupted.dispatch({ type: "saveAndExit" });
+
+    expect(uninterrupted.getViewModel()).toMatchObject({
+      screen: "start",
+      canContinue: true,
+      persistenceUnavailable: false,
+      elapsedSeconds: 0,
+    });
+    expect(repository.serialized).toContain('"elapsedActiveMs":10000');
+    expect(repository.serialized).toContain('"shotClock":9');
+
+    now = 100_000;
+    const resumed = new RunSession(999, 14, () => now, repository);
+    expect(resumed.getViewModel()).toMatchObject({ screen: "start", canContinue: true });
+    resumed.dispatch({ type: "continueRun" });
+    expect(resumed.state).toEqual(stateAtCheckpoint);
+    expect(resumed.getViewModel()).toMatchObject({ screen: "intermission", elapsedSeconds: 10 });
+    now = 105_000;
+    expect(resumed.getViewModel().elapsedSeconds).toBe(15);
+
+    const direct = new RunSession(2, 9, () => now);
+    direct.dispatch({ type: "startRun" });
+    playUntilScreenChanges(direct, "prepared", "contextual");
+    direct.dispatch({ type: "chooseReward", offerIndex: reward.index });
+    direct.dispatch({ type: "startNextMatch" });
+    resumed.dispatch({ type: "startNextMatch" });
+    expect(resumed.state).toEqual(direct.state);
+    expect(resumed.getViewModel().match?.shotClock).toBe(9);
+  });
+
+  it("wymaga potwierdzenia przed zastąpieniem istniejącego slotu", () => {
+    const repository = savedCheckpointRepository();
+    const session = new RunSession(99, 14, () => 5_000, repository);
+
+    session.dispatch({ type: "startRun" });
+    expect(session.getViewModel()).toMatchObject({ screen: "confirmNewRun", needsNewRunConfirmation: true });
+    expect(repository.serialized).toBeDefined();
+    session.dispatch({ type: "cancelStartRun" });
+    expect(session.getViewModel().screen).toBe("start");
+    session.dispatch({ type: "startRun" });
+    session.dispatch({ type: "confirmStartRun" });
+    expect(session.getViewModel()).toMatchObject({ screen: "match", stage: 1, canContinue: false });
+    expect(repository.serialized).toBeUndefined();
+  });
+
+  it("pokazuje uszkodzony slot, blokuje częściowe wznowienie i pozwala go odrzucić", () => {
+    const repository = new MemoryCheckpointRepository("{broken");
+    const session = new RunSession(42, 14, () => 0, repository);
+
+    expect(session.getViewModel()).toMatchObject({ screen: "start", canContinue: false });
+    expect(session.getViewModel().checkpointError).toContain("JSON");
+    session.dispatch({ type: "continueRun" });
+    session.dispatch({ type: "startRun" });
+    expect(session.state).toBeUndefined();
+    session.dispatch({ type: "discardCheckpoint" });
+    expect(session.getViewModel().checkpointError).toBeUndefined();
+    session.dispatch({ type: "startRun" });
+    expect(session.getViewModel().screen).toBe("match");
+  });
+
+  it("uruchamia sesję z głęboko zagnieżdżonym slotem i pozwala go odrzucić", () => {
+    const repository = new MemoryCheckpointRepository(deeplyNestedCheckpoint(20_000));
+
+    expect(() => new RunSession(42, 14, () => 0, repository)).not.toThrow();
+    const session = new RunSession(42, 14, () => 0, repository);
+    expect(session.getViewModel()).toMatchObject({
+      screen: "start",
+      canContinue: false,
+      checkpointError: expect.stringContaining("struktur"),
+    });
+    session.dispatch({ type: "discardCheckpoint" });
+    session.dispatch({ type: "startRun" });
+    expect(session.getViewModel()).toMatchObject({ screen: "match", stage: 1 });
+  });
+
+  it("usuwa slot po utworzeniu terminalnego podsumowania", () => {
+    const repository = new MemoryCheckpointRepository();
+    const session = new RunSession(42, 14, () => 0, repository);
+    session.dispatch({ type: "startRun" });
+    playUntilSummary(session, "immediate", "pressure");
+
+    expect(session.getViewModel().screen).toBe("summary");
+    expect(repository.removeCalls).toBe(1);
+    expect(repository.serialized).toBeUndefined();
+  });
+
+  it("po błędzie odczytu zatrzaskuje tryb bez trwałości bez późniejszych write/remove", () => {
+    const unreadable = new ReadFailWriteOkRepository();
+    const startWithoutPersistence = new RunSession(2, 14, () => 0, unreadable);
+    expect(startWithoutPersistence.getViewModel()).toMatchObject({
+      screen: "start",
+      persistenceUnavailable: true,
+      persistenceError: expect.stringContaining("TRYB BEZ ZAPISU"),
+    });
+    startWithoutPersistence.dispatch({ type: "startRun" });
+    expect(startWithoutPersistence.getViewModel()).toMatchObject({
+      screen: "match",
+      persistenceUnavailable: true,
+      persistenceError: expect.stringContaining("TRYB BEZ ZAPISU"),
+    });
+    expect(startWithoutPersistence.state?.phase).toBe("activeMatch");
+    playUntilScreenChanges(startWithoutPersistence, "prepared", "contextual");
+    const offer = startWithoutPersistence.getViewModel().rewardOffer?.[0];
+    if (offer === undefined) throw new Error("Brak nagrody w teście trybu bez trwałości.");
+    startWithoutPersistence.dispatch({ type: "chooseReward", offerIndex: offer.index });
+    expect(startWithoutPersistence.getViewModel()).toMatchObject({
+      screen: "intermission",
+      persistenceUnavailable: true,
+      persistenceError: expect.stringContaining("TRYB BEZ ZAPISU"),
+    });
+    startWithoutPersistence.dispatch({ type: "saveAndExit" });
+    expect(startWithoutPersistence.getViewModel().screen).toBe("intermission");
+    playUntilSummary(startWithoutPersistence, "prepared", "contextual");
+    expect(unreadable.writeCalls).toBe(0);
+    expect(unreadable.removeCalls).toBe(0);
+  });
+
+  it("po błędzie zapisu lub usunięcia zachowuje stan i przechodzi do trybu bez trwałości", () => {
+
+    const unwritable = new FailingCheckpointRepository("write");
+    const active = new RunSession(2, 14, () => 0, unwritable);
+    active.dispatch({ type: "startRun" });
+    playUntilScreenChanges(active, "prepared", "contextual");
+    active.dispatch({ type: "chooseReward", offerIndex: 0 });
+    const beforeSave = active.state;
+    active.dispatch({ type: "saveAndExit" });
+    expect(active.getViewModel().screen).toBe("intermission");
+    expect(active.getViewModel()).toMatchObject({
+      persistenceUnavailable: true,
+      persistenceError: expect.stringContaining("TRYB BEZ ZAPISU"),
+    });
+    expect(active.state).toBe(beforeSave);
+
+    const unremovable = new RunSession(42, 14, () => 0, new FailingCheckpointRepository("remove"));
+    unremovable.dispatch({ type: "startRun" });
+    playUntilSummary(unremovable, "immediate", "pressure");
+    expect(unremovable.getViewModel().persistenceError).toContain("storage");
+    unremovable.dispatch({ type: "resetRun" });
+    expect(unremovable.getViewModel().screen).toBe("match");
+  });
+
+  it("po invalid JSON i błędzie discard porzuca slot w pamięci oraz pozwala grać bez storage", () => {
+    const repository = new InvalidCheckpointRemoveFailRepository();
+    const session = new RunSession(2, 14, () => 0, repository);
+    expect(session.getViewModel().checkpointError).toContain("JSON");
+
+    session.dispatch({ type: "discardCheckpoint" });
+    expect(session.getViewModel()).toMatchObject({
+      screen: "start",
+      persistenceUnavailable: true,
+      persistenceError: expect.stringContaining("TRYB BEZ ZAPISU"),
+    });
+    expect(session.getViewModel().checkpointError).toBeUndefined();
+    session.dispatch({ type: "startRun" });
+    expect(session.getViewModel()).toMatchObject({
+      screen: "match",
+      persistenceUnavailable: true,
+      persistenceError: expect.stringContaining("TRYB BEZ ZAPISU"),
+    });
+    playUntilScreenChanges(session, "prepared", "contextual");
+    session.dispatch({ type: "chooseReward", offerIndex: 0 });
+    session.dispatch({ type: "saveAndExit" });
+    expect(session.getViewModel().screen).toBe("intermission");
+    expect(repository.removeCalls).toBe(1);
+    expect(repository.writeCalls).toBe(0);
+  });
 });
+
+class MemoryCheckpointRepository implements RunCheckpointRepository {
+  public removeCalls = 0;
+
+  public constructor(public serialized?: string) {}
+
+  public read(): CheckpointStorageResult<string | null> {
+    return { ok: true, value: this.serialized ?? null };
+  }
+
+  public write(serialized: string): CheckpointStorageResult<void> {
+    this.serialized = serialized;
+    return { ok: true, value: undefined };
+  }
+
+  public remove(): CheckpointStorageResult<void> {
+    this.removeCalls += 1;
+    this.serialized = undefined;
+    return { ok: true, value: undefined };
+  }
+}
+
+function savedCheckpointRepository(): MemoryCheckpointRepository {
+  const repository = new MemoryCheckpointRepository();
+  const session = new RunSession(2, 14, () => 0, repository);
+  session.dispatch({ type: "startRun" });
+  playUntilScreenChanges(session, "prepared", "contextual");
+  session.dispatch({ type: "chooseReward", offerIndex: 0 });
+  session.dispatch({ type: "saveAndExit" });
+  return repository;
+}
+
+class FailingCheckpointRepository implements RunCheckpointRepository {
+  public constructor(private readonly failingOperation: "read" | "write" | "remove") {}
+
+  public read(): CheckpointStorageResult<string | null> {
+    return this.failingOperation === "read" ? this.failure("read") : { ok: true, value: null };
+  }
+
+  public write(): CheckpointStorageResult<void> {
+    return this.failingOperation === "write" ? this.failure("write") : { ok: true, value: undefined };
+  }
+
+  public remove(): CheckpointStorageResult<void> {
+    return this.failingOperation === "remove" ? this.failure("remove") : { ok: true, value: undefined };
+  }
+
+  private failure<T>(operation: "read" | "write" | "remove"): CheckpointStorageResult<T> {
+    return {
+      ok: false,
+      error: { operation, code: "storageUnavailable", message: "Błąd storage." },
+    };
+  }
+}
+
+class ReadFailWriteOkRepository implements RunCheckpointRepository {
+  public writeCalls = 0;
+  public removeCalls = 0;
+
+  public read(): CheckpointStorageResult<string | null> {
+    return this.failure("read");
+  }
+
+  public write(): CheckpointStorageResult<void> {
+    this.writeCalls += 1;
+    return { ok: true, value: undefined };
+  }
+
+  public remove(): CheckpointStorageResult<void> {
+    this.removeCalls += 1;
+    return { ok: true, value: undefined };
+  }
+
+  private failure<T>(operation: "read"): CheckpointStorageResult<T> {
+    return { ok: false, error: { operation, code: "storageUnavailable", message: "Błąd storage." } };
+  }
+}
+
+class InvalidCheckpointRemoveFailRepository implements RunCheckpointRepository {
+  public writeCalls = 0;
+  public removeCalls = 0;
+
+  public read(): CheckpointStorageResult<string | null> {
+    return { ok: true, value: "{broken" };
+  }
+
+  public write(): CheckpointStorageResult<void> {
+    this.writeCalls += 1;
+    return { ok: true, value: undefined };
+  }
+
+  public remove(): CheckpointStorageResult<void> {
+    this.removeCalls += 1;
+    return {
+      ok: false,
+      error: { operation: "remove", code: "storageUnavailable", message: "Błąd storage." },
+    };
+  }
+}
+
+function deeplyNestedCheckpoint(depth: number): string {
+  const placeholder = "__DEEPLY_NESTED_VALUE__";
+  const shallow = {
+    kind: "hoop-run.run-checkpoint",
+    version: 1,
+    contentVersion: 1,
+    elapsedActiveMs: 0,
+    shotClock: 14,
+    run: {
+      initialSeed: 1,
+      rngState: 1,
+      phase: "intermission",
+      opponentIndex: 1,
+      opponentIds: placeholder,
+      initialDecks: {},
+      offenseDeck: [],
+      defenseDeck: [],
+      rewardCatalog: [],
+      opponentProfiles: [],
+      matchSetup: {},
+      matchResults: [],
+      selectedRewards: [],
+    },
+  };
+  return JSON.stringify(shallow).replace(`"${placeholder}"`, `${"[".repeat(depth)}0${"]".repeat(depth)}`);
+}
 
 function playStrategicRun(session: RunSession): "success" | "failure" {
   let offenseRewardId: string | undefined;

@@ -165,6 +165,198 @@ test("przepływ startu i meczu mieści się w widoku 1024×768", { tag: "@smoke"
   expect((bounds?.y ?? 0) + (bounds?.height ?? 0)).toBeLessThanOrEqual(768);
 });
 
+test("niedostępny getter localStorage nie blokuje uruchomienia gry", { tag: "@smoke" }, async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get: () => { throw new DOMException("blocked", "SecurityError"); },
+    });
+  });
+  const diagnostics = collectDiagnostics(page);
+  await page.goto("/HOOP-RUN/?seed=42&e2e=1");
+  await expect(page.locator("canvas")).toBeVisible();
+  await expect.poll(() => snapshot(page)).toMatchObject({
+    screen: "start",
+    canContinue: false,
+    persistenceUnavailable: true,
+    persistenceError: expect.stringContaining("bez zapisu"),
+  });
+  await clickGame(page, 640, 411);
+  await expect.poll(() => snapshot(page)).toMatchObject({
+    screen: "match",
+    stage: 1,
+    persistenceUnavailable: true,
+    persistenceError: expect.stringContaining("bez zapisu"),
+  });
+  expect(diagnostics.consoleErrors).toEqual([]);
+  expect(diagnostics.failedRequests).toEqual([]);
+  expect(diagnostics.badResponses).toEqual([]);
+});
+
+test("invalid JSON i błąd usunięcia pozwalają rozpocząć run w trybie bez zapisu", async ({ page }, testInfo) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("hoop-run:run-checkpoint", "{broken");
+    const removeItem = Storage.prototype.removeItem;
+    Storage.prototype.removeItem = function (key: string): void {
+      if (key === "hoop-run:run-checkpoint") throw new DOMException("blocked", "SecurityError");
+      removeItem.call(this, key);
+    };
+  });
+  await page.setViewportSize({ width: 1024, height: 768 });
+  const diagnostics = collectDiagnostics(page);
+  await page.goto("/HOOP-RUN/?seed=2&e2e=1");
+  await expect.poll(() => snapshot(page)).toMatchObject({
+    screen: "start",
+    checkpointError: expect.stringContaining("JSON"),
+    persistenceUnavailable: false,
+  });
+  await clickGame(page, 640, 524);
+  await expect.poll(() => snapshot(page)).toMatchObject({
+    screen: "start",
+    persistenceUnavailable: true,
+    persistenceError: expect.stringContaining("TRYB BEZ ZAPISU"),
+  });
+  expect((await snapshot(page)).checkpointError).toBeUndefined();
+  await clickGame(page, 640, 411);
+  await expect.poll(() => snapshot(page)).toMatchObject({
+    screen: "match",
+    persistenceUnavailable: true,
+    persistenceError: expect.stringContaining("TRYB BEZ ZAPISU"),
+  });
+  await playUntilRunScreenChanges(page);
+  const offer = (await snapshot(page)).rewardOffer?.[0];
+  if (offer === undefined) throw new Error("Brak nagrody w teście trybu bez zapisu.");
+  await clickGame(page, 265 + offer.index * 390, 385);
+  await expect.poll(() => snapshot(page)).toMatchObject({
+    screen: "intermission",
+    persistenceUnavailable: true,
+    persistenceError: expect.stringContaining("TRYB BEZ ZAPISU"),
+  });
+  await attachCanvasEvidence(page, testInfo, "discard-failure-no-persistence-1024x768");
+  await clickGame(page, 850, 577);
+  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "intermission" });
+  expect(diagnostics.consoleErrors).toEqual([]);
+  expect(diagnostics.failedRequests).toEqual([]);
+  expect(diagnostics.badResponses).toEqual([]);
+});
+
+test("głęboko zagnieżdżony slot nie blokuje uruchomienia strony ani nowego runu", async ({ page }, testInfo) => {
+  await page.addInitScript(() => {
+    const placeholder = "__DEEPLY_NESTED_VALUE__";
+    const shallow = {
+      kind: "hoop-run.run-checkpoint",
+      version: 1,
+      contentVersion: 1,
+      elapsedActiveMs: 0,
+      shotClock: 14,
+      run: {
+        initialSeed: 1,
+        rngState: 1,
+        phase: "intermission",
+        opponentIndex: 1,
+        opponentIds: placeholder,
+        initialDecks: {},
+        offenseDeck: [],
+        defenseDeck: [],
+        rewardCatalog: [],
+        opponentProfiles: [],
+        matchSetup: {},
+        matchResults: [],
+        selectedRewards: [],
+      },
+    };
+    const deeplyNested = `${"[".repeat(20_000)}0${"]".repeat(20_000)}`;
+    const serialized = JSON.stringify(shallow).replace(`"${placeholder}"`, deeplyNested);
+    localStorage.setItem("hoop-run:run-checkpoint", serialized);
+  });
+  await page.setViewportSize({ width: 1024, height: 768 });
+  const diagnostics = collectDiagnostics(page);
+  await page.goto("/HOOP-RUN/?seed=42&e2e=1");
+  await expect(page.locator("canvas")).toBeVisible();
+  await expect.poll(() => snapshot(page)).toMatchObject({
+    screen: "start",
+    canContinue: false,
+    checkpointError: expect.stringContaining("struktur"),
+  });
+  await attachCanvasEvidence(page, testInfo, "deep-checkpoint-error-1024x768");
+  await clickGame(page, 640, 524);
+  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "start", canContinue: false });
+  expect((await snapshot(page)).checkpointError).toBeUndefined();
+  await clickGame(page, 640, 411);
+  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "match", stage: 1 });
+  expect(diagnostics.consoleErrors).toEqual([]);
+  expect(diagnostics.failedRequests).toEqual([]);
+  expect(diagnostics.badResponses).toEqual([]);
+});
+
+test("checkpoint przeżywa reload, wznawia intermission i wymaga potwierdzenia zastąpienia", async ({ page }, testInfo) => {
+  test.setTimeout(240_000);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  const diagnostics = collectDiagnostics(page);
+  await page.goto("/HOOP-RUN/?seed=2&e2e=1");
+  await startRun(page);
+  await playUntilRunScreenChanges(page);
+  const offer = await snapshot(page);
+  const reward = offer.rewardOffer?.[0];
+  if (reward === undefined) throw new Error("Brak nagrody do checkpointu.");
+  await clickGame(page, 265 + reward.index * 390, 385);
+  const beforeSave = await snapshot(page);
+  expect(beforeSave.screen).toBe("intermission");
+  await clickGame(page, 850, 577);
+  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "start", canContinue: true });
+  expect(await page.evaluate(() => localStorage.getItem("hoop-run:run-checkpoint"))).toContain('"version":1');
+  expect(await page.evaluate(() => localStorage.getItem("hoop-run:run-checkpoint"))).toContain('"shotClock":14');
+  await attachCanvasEvidence(page, testInfo, "checkpoint-start-1280x720", 1280, 720);
+
+  await page.goto("/HOOP-RUN/?seed=2&clock=9&e2e=1");
+  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "start", canContinue: true });
+  await clickGame(page, 640, 485);
+  const resumed = await snapshot(page);
+  expect(resumed).toMatchObject({
+    screen: "intermission",
+    stage: beforeSave.stage,
+    rewards: beforeSave.rewards,
+    results: beforeSave.results,
+    offenseDeck: beforeSave.offenseDeck,
+    defenseDeck: beforeSave.defenseDeck,
+  });
+  await clickGame(page, 640, 577);
+  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "match", stage: 2, match: { shotClock: 14 } });
+
+  await page.reload();
+  await clickGame(page, 640, 411);
+  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "confirmNewRun", needsNewRunConfirmation: true });
+  await clickGame(page, 480, 499);
+  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "start", canContinue: true });
+  await clickGame(page, 640, 411);
+  await clickGame(page, 800, 499);
+  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "match", stage: 1, canContinue: false });
+  expect(await page.evaluate(() => localStorage.getItem("hoop-run:run-checkpoint"))).toBeNull();
+  expect(diagnostics.consoleErrors).toEqual([]);
+  expect(diagnostics.failedRequests).toEqual([]);
+  expect(diagnostics.badResponses).toEqual([]);
+});
+
+test("uszkodzony checkpoint można odrzucić bez częściowego wznowienia", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  const diagnostics = collectDiagnostics(page);
+  await page.goto("/HOOP-RUN/?seed=42&e2e=1");
+  await page.evaluate(() => localStorage.setItem("hoop-run:run-checkpoint", "{broken"));
+  await page.reload();
+  const corrupt = await snapshot(page);
+  expect(corrupt).toMatchObject({ screen: "start", canContinue: false });
+  expect(corrupt.checkpointError).toContain("JSON");
+  await attachCanvasEvidence(page, testInfo, "corrupt-checkpoint-1024x768");
+  await clickGame(page, 640, 524);
+  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "start", canContinue: false });
+  expect((await snapshot(page)).checkpointError).toBeUndefined();
+  expect(await page.evaluate(() => localStorage.getItem("hoop-run:run-checkpoint"))).toBeNull();
+  await startRun(page);
+  expect(diagnostics.consoleErrors).toEqual([]);
+  expect(diagnostics.failedRequests).toEqual([]);
+  expect(diagnostics.badResponses).toEqual([]);
+});
+
 async function startRun(page: Page): Promise<void> {
   await clickGame(page, 640, 445);
   await expect.poll(() => snapshot(page)).toMatchObject({ screen: "match" });
@@ -255,11 +447,14 @@ async function playRun(
         usedReward = true;
         const afterReward = await matchSnapshot(page);
         const historyRecorded = afterReward.playedCardIds.includes(rewardCard.id);
-        const qualityDelta = shotChance(afterReward) - beforeChance;
+        const shotAvailable = afterReward.cards.some(
+          (card) => card.id === "shot" && card.status === "available",
+        );
         if (
           afterReward.phase === "activePossession" &&
-          afterReward.cards.some((card) => card.id === "shot" && card.status === "available")
+          shotAvailable
         ) {
+          const qualityDelta = shotChance(afterReward) - beforeChance;
           await playCardThroughInteractions(page, "shot");
           const afterShot = await matchSnapshot(page);
           rewardEffectObserved ||=
@@ -318,7 +513,7 @@ function defensePriorities(currentAction: string): readonly string[] {
 
 async function playCardThroughInteractions(page: Page, cardId: string): Promise<void> {
   await clickCard(page, cardId);
-  for (let step = 0; step < 3; step += 1) {
+  for (let step = 0; step < 5; step += 1) {
     const target = (await matchSnapshot(page)).players.find(
       (player) => player.interaction === "legalActor" || player.interaction === "legalTarget",
     );
@@ -375,6 +570,7 @@ async function clickGame(page: Page, x: number, y: number): Promise<void> {
   const bounds = await page.locator("canvas").boundingBox();
   if (bounds === null) throw new Error("Canvas gry nie jest widoczny.");
   await page.mouse.click(bounds.x + (x / GAME_WIDTH) * bounds.width, bounds.y + (y / GAME_HEIGHT) * bounds.height);
+  await page.waitForTimeout(25);
 }
 
 async function matchSnapshot(page: Page): Promise<MatchViewModel> {
