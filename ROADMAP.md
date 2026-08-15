@@ -64,7 +64,7 @@ Pełny mecz można osadzić w nadrzędnym agregacie bez duplikowania reguł i lo
 - Ryzyko: ponowne wejście do oferty może przerzucać nagrody; wygenerowana oferta jest częścią stanu, nie pochodną renderowania.
 - Ryzyko: agregat runu może kopiować wynik i fazy meczu; stan pochodny należy wyliczać, a rezultat meczu przyjmować przez jeden kontrakt zakończenia.
 
-## Milestone 9: Karty nagród i tożsamość przeciwników (`planned`)
+## Milestone 9: Karty nagród i tożsamość przeciwników (`done`)
 
 ### Cel
 
@@ -106,7 +106,8 @@ Cztery karty o przestrzennych kompromisach oraz różne wagi planów i intencji 
 - Testy automatyczne: Vitest dla legalności, kosztów, efektów, kompromisów, prognoz, trzech profili i deterministycznego audytu seedów.
 - Build: pełne `./scripts/verify.sh`.
 - Playtest: niewymagany, ponieważ milestone kończy się na regułach i danych headlessowych.
-- Review: wymagane read-only review koszykarskiego znaczenia kart, braku dominanty, danych przeciwników i granicy `core`/`content`.
+- Review: read-only review koszykarskiego znaczenia kart, braku dominanty, danych przeciwników i granicy `core`/`content` zakończone decyzją `APPROVED`.
+- Wynik końcowy: `./scripts/verify.sh` zielony — 88 testów Vitest, build i 4/4 E2E; playtest niewymagany, ponieważ milestone nie zmienił widocznego przepływu.
 
 ### Zależności, decyzje i ryzyka
 

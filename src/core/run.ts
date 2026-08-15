@@ -9,6 +9,7 @@ import type {
   MatchState,
   TeamMatchStats,
 } from "./match.ts";
+import type { OpponentProfile } from "./defense.ts";
 import type { CardId } from "./model.ts";
 import { normalizeSeed, xorshift32RandomSource } from "./rng.ts";
 import type { RandomSource } from "./rng.ts";
@@ -69,6 +70,7 @@ export interface RunSetup {
   readonly offenseDeck: readonly CardId[];
   readonly defenseDeck: readonly CardId[];
   readonly rewardCatalog: readonly RewardCardDefinition[];
+  readonly opponentProfiles?: readonly OpponentProfile[];
   readonly match: Pick<
     MatchSetup,
     "handSize" | "requiredOffenseCards" | "requiredDefenseCards"
@@ -92,6 +94,7 @@ export interface RunState {
   readonly offenseDeck: readonly CardId[];
   readonly defenseDeck: readonly CardId[];
   readonly rewardCatalog: readonly RewardCardDefinition[];
+  readonly opponentProfiles?: readonly OpponentProfile[];
   readonly matchSetup: RunSetup["match"];
   readonly activeMatch?: MatchState;
   readonly rewardOffer?: RewardOffer;
@@ -155,6 +158,8 @@ export function createRun(
     setup.offenseDeck,
     setup.defenseDeck,
     setup.match,
+    setup.opponentProfiles?.[0],
+    [],
     initialSeed,
     randomSource,
   );
@@ -171,6 +176,9 @@ export function createRun(
     offenseDeck: [...setup.offenseDeck],
     defenseDeck: [...setup.defenseDeck],
     rewardCatalog: setup.rewardCatalog.map((card) => ({ ...card })),
+    ...(setup.opponentProfiles === undefined
+      ? {}
+      : { opponentProfiles: setup.opponentProfiles.map(cloneOpponentProfile) }),
     matchSetup: {
       ...setup.match,
       requiredOffenseCards: [...(setup.match.requiredOffenseCards ?? [])],
@@ -216,6 +224,7 @@ export function resetRun(
       offenseDeck: state.initialDecks.offense,
       defenseDeck: state.initialDecks.defense,
       rewardCatalog: state.rewardCatalog,
+      opponentProfiles: state.opponentProfiles,
       match: state.matchSetup,
     },
     seed,
@@ -410,6 +419,8 @@ function startNextMatch(
     state.offenseDeck,
     state.defenseDeck,
     state.matchSetup,
+    state.opponentProfiles?.[state.opponentIndex],
+    state.selectedRewards.map((reward) => reward.cardId),
     getRunRngState(state),
     randomSource,
   );
@@ -487,6 +498,8 @@ function createRunMatch(
   offenseDeck: readonly CardId[],
   defenseDeck: readonly CardId[],
   setup: RunSetup["match"],
+  opponentProfile: OpponentProfile | undefined,
+  protectedCardIds: readonly CardId[],
   rngState: number,
   randomSource: RandomSource,
 ): MatchState {
@@ -495,10 +508,30 @@ function createRunMatch(
       offenseDeck,
       defenseDeck,
       ...setup,
+      ...(protectedCardIds.length === 0 ? {} : { protectedCardIds }),
+      ...(opponentProfile === undefined ? {} : { opponentProfile }),
     },
     rngState,
     randomSource,
   );
+}
+
+function cloneOpponentProfile(profile: OpponentProfile): OpponentProfile {
+  return {
+    ...profile,
+    plans: Object.fromEntries(
+      Object.entries(profile.plans).map(([id, plan]) => [
+        id,
+        {
+          ...plan,
+          steps: plan.steps.map((step) => ({ ...step })),
+        },
+      ]),
+    ),
+    planWeights: profile.planWeights.map((weight) => ({ ...weight })),
+    defenseIntents: profile.defenseIntents.map((intent) => ({ ...intent })),
+    intentWeights: profile.intentWeights.map((weight) => ({ ...weight })),
+  };
 }
 
 function validateRunSetup(setup: RunSetup): void {
@@ -509,6 +542,16 @@ function validateRunSetup(setup: RunSetup): void {
     )
   ) {
     throw new Error("Run musi prowadzić przez zatwierdzoną kolejność przeciwników.");
+  }
+  if (setup.opponentProfiles !== undefined) {
+    if (
+      setup.opponentProfiles.length !== FIRST_RUN_OPPONENT_ORDER.length ||
+      setup.opponentProfiles.some(
+        (profile, index) => profile.id !== FIRST_RUN_OPPONENT_ORDER[index],
+      )
+    ) {
+      throw new Error("Profile przeciwników muszą odpowiadać kolejności runu.");
+    }
   }
   const cardIds = new Set<string>();
   let offenseCount = 0;

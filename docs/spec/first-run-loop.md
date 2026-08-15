@@ -2,7 +2,7 @@
 
 ## Status
 
-- Status: częściowo zaimplementowane — Milestone 8 ukończony, Milestone'y 9–12 zaplanowane.
+- Status: częściowo zaimplementowane — Milestone 8 ukończony, Milestone 9 `done` po review `APPROVED`, Milestone'y 10–12 pozostają `planned`.
 - Źródło: `prd/002-first-run-loop.md`.
 - Plan realizacji: Milestone'y 8–12 w `ROADMAP.md`.
 - Zależność: zweryfikowany pełny mecz z PRD 001 opisany w `docs/spec/full-match.md`.

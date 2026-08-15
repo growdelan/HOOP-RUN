@@ -6,6 +6,9 @@ export {
   playDefenseCard,
   previewDefenseCardImpact,
   resolveOpponentShot,
+  selectOpponentDefenseIntent,
+  selectOpponentPlan,
+  selectWeightedOpponentIntent,
 } from "./defense.ts";
 export type * from "./match.ts";
 export {
@@ -19,9 +22,14 @@ export {
   createPossession,
   calculateShotQuality,
   playCard,
+  previewOffenseCardImpact,
   resetPossession,
   resolveShot,
   startPossession,
+} from "./possession.ts";
+export type {
+  OffenseCardImpact,
+  OffenseCardPreviewStatus,
 } from "./possession.ts";
 export {
   normalizeSeed,

@@ -2,6 +2,7 @@ import type {
   DefenseCardCatalog,
   DefensePossessionSetup,
   DefenseIntent,
+  OpponentProfile,
   OpponentPlanCatalog,
 } from "../core/index.ts";
 import { PROTOTYPE_SETUP } from "./prototypePossession.ts";
@@ -156,6 +157,56 @@ export const PROTOTYPE_DEFENSE_CARDS = {
       },
     },
   },
+  hedge: {
+    id: "hedge",
+    name: "Hedge",
+    kind: "hedge",
+    timeCost: 2,
+    targetMode: "actionTarget",
+    risk: "Hedge ogranicza prowadzącego, ale odsłania screenera na następną akcję.",
+    effects: {
+      screen: {
+        advantageDelta: -2,
+        contestDelta: 6,
+        turnoverPressureDelta: 0,
+        extraClockCost: 1,
+        exposure: "actionActor",
+        exposureAdvantageDelta: 1,
+        assignmentChange: "none",
+        explanation: "Hedge zabiera przewagę zasłony i podnosi contest kosztem odsłonięcia screenera.",
+      },
+    },
+  },
+  closeOut: {
+    id: "closeOut",
+    name: "Close Out",
+    kind: "closeOut",
+    timeCost: 2,
+    targetMode: "actionActor",
+    risk: "Spóźniony doskok oddaje przewagę, jeśli atak już ją zbudował.",
+    effects: {
+      shoot: {
+        advantageDelta: 0,
+        contestDelta: 12,
+        turnoverPressureDelta: 0,
+        extraClockCost: 0,
+        exposure: "none",
+        assignmentChange: "none",
+        allowedActionActorZones: [
+          "leftPerimeter",
+          "topPerimeter",
+          "rightPerimeter",
+        ],
+        whenOpponentAdvantageAtLeast: {
+          threshold: 1,
+          advantageDelta: 1,
+          contestDelta: 4,
+          explanation: "Close Out jest spóźniony: ogranicza rzut, ale agresywny doskok oddaje punkt przewagi.",
+        },
+        explanation: "Czysty Close Out mocno podnosi contest rzutu z obwodu.",
+      },
+    },
+  },
 } as const satisfies DefenseCardCatalog;
 
 export const PROTOTYPE_OPPONENT_PLANS = {
@@ -277,6 +328,60 @@ export const PROTOTYPE_OPPONENT_DEFENSE_INTENTS = [
     helpOnDrive: false,
   },
 ] as const satisfies readonly DefenseIntent[];
+
+export const PROTOTYPE_OPPONENT_PROFILES = {
+  fundamentals: {
+    id: "fundamentals",
+    name: "Fundamentals",
+    description: "Zbalansowany przeciwnik uczący podstawowych odpowiedzi.",
+    plans: PROTOTYPE_OPPONENT_PLANS,
+    planWeights: [
+      { planId: "pickAndRoll", weight: 1 },
+      { planId: "driveAndKick", weight: 1 },
+      { planId: "quickThree", weight: 1 },
+    ],
+    defenseIntents: PROTOTYPE_OPPONENT_DEFENSE_INTENTS,
+    intentWeights: [
+      { intentId: "pressure-and-help", weight: 1 },
+      { intentId: "protect-paint", weight: 1 },
+      { intentId: "deny-perimeter", weight: 1 },
+    ],
+  },
+  perimeterCrew: {
+    id: "perimeterCrew",
+    name: "Perimeter Crew",
+    description: "Obwodowa ekipa przyspieszająca Quick Three i odcinająca obwód.",
+    plans: PROTOTYPE_OPPONENT_PLANS,
+    planWeights: [
+      { planId: "pickAndRoll", weight: 1 },
+      { planId: "driveAndKick", weight: 1 },
+      { planId: "quickThree", weight: 3 },
+    ],
+    defenseIntents: PROTOTYPE_OPPONENT_DEFENSE_INTENTS,
+    intentWeights: [
+      { intentId: "pressure-and-help", weight: 1 },
+      { intentId: "protect-paint", weight: 1 },
+      { intentId: "deny-perimeter", weight: 3 },
+    ],
+  },
+  paintKings: {
+    id: "paintKings",
+    name: "Paint Kings",
+    description: "Drużyna paintu preferująca Pick & Roll i ochronę strefy pod koszem.",
+    plans: PROTOTYPE_OPPONENT_PLANS,
+    planWeights: [
+      { planId: "pickAndRoll", weight: 3 },
+      { planId: "driveAndKick", weight: 1 },
+      { planId: "quickThree", weight: 1 },
+    ],
+    defenseIntents: PROTOTYPE_OPPONENT_DEFENSE_INTENTS,
+    intentWeights: [
+      { intentId: "pressure-and-help", weight: 1 },
+      { intentId: "protect-paint", weight: 3 },
+      { intentId: "deny-perimeter", weight: 1 },
+    ],
+  },
+} as const satisfies Readonly<Record<string, OpponentProfile>>;
 
 export const PROTOTYPE_DEFENSE_SETUP: DefensePossessionSetup = {
   shotClock: 14,

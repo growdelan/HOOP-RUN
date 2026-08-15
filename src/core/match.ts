@@ -1,4 +1,5 @@
 import type { CardId, Zone } from "./model.ts";
+import type { OpponentProfile } from "./defense.ts";
 import { normalizeSeed, xorshift32RandomSource } from "./rng.ts";
 import type { RandomSource } from "./rng.ts";
 
@@ -33,6 +34,9 @@ export interface MatchSetup {
   readonly handSize?: number;
   readonly requiredOffenseCards?: readonly CardId[];
   readonly requiredDefenseCards?: readonly CardId[];
+  /** Nagrody pozostają losowe, ale nie są wypychane z ręki przez przygotowanie wymagań. */
+  readonly protectedCardIds?: readonly CardId[];
+  readonly opponentProfile?: OpponentProfile;
 }
 
 export interface ActiveMatchPossession {
@@ -76,6 +80,8 @@ export interface MatchState {
     readonly defenseDeck: readonly CardId[];
     readonly requiredOffenseCards: readonly CardId[];
     readonly requiredDefenseCards: readonly CardId[];
+    readonly protectedCardIds?: readonly CardId[];
+    readonly opponentProfile?: OpponentProfile;
   };
   readonly offenseDeck: MatchDeckState;
   readonly defenseDeck: MatchDeckState;
@@ -139,6 +145,7 @@ export function createMatch(
   const offenseDeck = ensureRequiredCards(
     offenseDraw.deck,
     setup.requiredOffenseCards ?? [],
+    setup.protectedCardIds ?? [],
   );
 
   return {
@@ -155,6 +162,12 @@ export function createMatch(
       defenseDeck: [...setup.defenseDeck],
       requiredOffenseCards: [...(setup.requiredOffenseCards ?? [])],
       requiredDefenseCards: [...(setup.requiredDefenseCards ?? [])],
+      ...(setup.protectedCardIds === undefined
+        ? {}
+        : { protectedCardIds: [...setup.protectedCardIds] }),
+      ...(setup.opponentProfile === undefined
+        ? {}
+        : { opponentProfile: cloneOpponentProfile(setup.opponentProfile) }),
     },
     offenseDeck,
     defenseDeck: createDeck(defenseShuffle.cards),
@@ -261,7 +274,11 @@ export function advanceMatch(
     playerRole === "offense"
       ? state.setup.requiredOffenseCards
       : state.setup.requiredDefenseCards;
-  const preparedDeck = ensureRequiredCards(draw.deck, requiredCards);
+  const preparedDeck = ensureRequiredCards(
+    draw.deck,
+    requiredCards,
+    state.setup.protectedCardIds ?? [],
+  );
 
   return acceptMatch({
     ...state,
@@ -290,6 +307,8 @@ export function resetMatch(
       handSize: state.rules.handSize,
       requiredOffenseCards: state.setup.requiredOffenseCards,
       requiredDefenseCards: state.setup.requiredDefenseCards,
+      protectedCardIds: state.setup.protectedCardIds,
+      opponentProfile: state.setup.opponentProfile,
     },
     state.initialSeed,
     randomSource,
@@ -358,6 +377,7 @@ function discardHand(
 function ensureRequiredCards(
   deck: MatchDeckState,
   requiredCards: readonly CardId[],
+  protectedCardIds: readonly CardId[] = [],
 ): MatchDeckState {
   const drawPile = [...deck.drawPile];
   const hand = [...deck.hand];
@@ -368,7 +388,11 @@ function ensureRequiredCards(
     while (countIn(hand, cardId) < requiredCount) {
       const source = drawPile.includes(cardId) ? drawPile : discardPile;
       const sourceIndex = source.indexOf(cardId);
-      const replacementIndex = findReplaceableHandIndex(hand, requiredCounts);
+      const replacementIndex = findReplaceableHandIndex(
+        hand,
+        requiredCounts,
+        protectedCardIds,
+      );
       if (sourceIndex < 0 || replacementIndex < 0) {
         throw new Error("Nie można zbudować wymaganej użytecznej ręki.");
       }
@@ -494,11 +518,13 @@ function countIn(cards: readonly CardId[], cardId: CardId): number {
 function findReplaceableHandIndex(
   hand: readonly CardId[],
   requiredCounts: ReadonlyMap<CardId, number>,
+  protectedCardIds: readonly CardId[],
 ): number {
   for (let index = hand.length - 1; index >= 0; index -= 1) {
     const cardId = hand[index];
     if (
       cardId !== undefined &&
+      !protectedCardIds.includes(cardId) &&
       countIn(hand, cardId) > (requiredCounts.get(cardId) ?? 0)
     ) {
       return index;
@@ -524,6 +550,24 @@ function validateSetup(setup: MatchSetup, handSize: number): void {
     setup.requiredDefenseCards ?? [],
     handSize,
   );
+}
+
+function cloneOpponentProfile(profile: OpponentProfile): OpponentProfile {
+  return {
+    ...profile,
+    plans: Object.fromEntries(
+      Object.entries(profile.plans).map(([id, plan]) => [
+        id,
+        {
+          ...plan,
+          steps: plan.steps.map((step) => ({ ...step })),
+        },
+      ]),
+    ),
+    planWeights: profile.planWeights.map((weight) => ({ ...weight })),
+    defenseIntents: profile.defenseIntents.map((intent) => ({ ...intent })),
+    intentWeights: profile.intentWeights.map((weight) => ({ ...weight })),
+  };
 }
 
 function validateRequiredCards(

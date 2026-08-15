@@ -2,10 +2,12 @@ import type {
   ActionRejection,
   CardCatalog,
   CardDefinition,
+  CardId,
   DomainEvent,
   PlayCardCommand,
   PlayedAction,
   PlayerState,
+  PlayerId,
   PossessionSetup,
   PossessionState,
   RuleResult,
@@ -107,7 +109,75 @@ export function playCard(
       return playKickOut(state, command, card, actor);
     case "shot":
       return playShot(state, command, card, actor);
+    case "backdoorCut":
+      return playBackdoorCut(state, command, card, actor);
+    case "stepBack":
+      return playStepBack(state, command, card, actor);
   }
+}
+
+export type OffenseCardPreviewStatus =
+  | "backdoorOpen"
+  | "backdoorClosed"
+  | "stepBackReady";
+
+export interface OffenseCardImpact {
+  readonly cardId: CardId;
+  readonly timeCost: number;
+  readonly shotQualityDelta: number;
+  readonly status: OffenseCardPreviewStatus;
+  readonly openedPlayerId?: PlayerId;
+  readonly createdSeparation?: number;
+  readonly explanation: string;
+}
+
+export function previewOffenseCardImpact(
+  state: PossessionState,
+  command: PlayCardCommand,
+  cards: CardCatalog,
+): OffenseCardImpact | undefined {
+  const card = cards[command.cardId];
+  const actor = findPlayer(state, command.actorId);
+  if (card === undefined || actor === undefined) return undefined;
+
+  const result = playCard(state, command, cards);
+  if (!result.accepted) return undefined;
+
+  const resultActor = findPlayer(result.state, actor.id) ?? actor;
+  const shotQualityDelta =
+    calculateShotQuality(result.state, resultActor).totalScore -
+    calculateShotQuality(state, actor).totalScore;
+  if (card.kind === "backdoorCut") {
+    const opened = result.events.some(
+      (event) =>
+        event.type === "backdoorCutResolved" &&
+        event.playerId === actor.id &&
+        event.opened,
+    );
+    return {
+      cardId: card.id,
+      timeCost: card.timeCost,
+      shotQualityDelta,
+      status: opened ? "backdoorOpen" : "backdoorClosed",
+      ...(opened ? { openedPlayerId: actor.id } : {}),
+      explanation: opened
+        ? "Cutter trafia do paint i pozostaje otwarty przeciw agresywnej presji bez pomocy."
+        : "Cutter trafia do paint, ale nie dostaje statusu otwarcia w tym kryciu.",
+    };
+  }
+  if (card.kind === "stepBack") {
+    return {
+      cardId: card.id,
+      timeCost: card.timeCost,
+      shotQualityDelta,
+      status: "stepBackReady",
+      ...(result.state.stepBackCreatedSeparation === undefined
+        ? {}
+        : { createdSeparation: result.state.stepBackCreatedSeparation }),
+      explanation: `Najbliższy rzut tego wykonującego otrzyma przygotowaną separację (+${result.state.stepBackCreatedSeparation ?? 0} pp).`,
+    };
+  }
+  return undefined;
 }
 
 export function resolveShot(
@@ -367,6 +437,7 @@ function playShot(
   }
 
   const quality = calculateShotQuality(state, actor);
+  const consumesStepBack = state.stepBackReady === actor.id;
   return finishCard(
     state,
     command,
@@ -375,8 +446,109 @@ function playShot(
       ...state,
       phase: "resolvingShot",
       pendingShot: { shooterId: actor.id, quality },
+      ...(consumesStepBack
+        ? { stepBackReady: undefined, stepBackCreatedSeparation: undefined }
+        : {}),
     },
-    [{ type: "shotPrepared", shooterId: actor.id, quality }],
+    [
+      ...(consumesStepBack
+        ? [{ type: "stepBackConsumed" as const, playerId: actor.id }]
+        : []),
+      { type: "shotPrepared", shooterId: actor.id, quality },
+    ],
+  );
+}
+
+function playBackdoorCut(
+  state: PossessionState,
+  command: PlayCardCommand,
+  card: CardDefinition,
+  actor: PlayerState,
+): RuleResult {
+  if (actor.id === state.ballHandlerId) {
+    return reject(
+      state,
+      "backdoorCutRequiresOffBallActor",
+      "Backdoor Cut wymaga zawodnika bez piłki.",
+    );
+  }
+  if (!PERIMETER_ZONES.includes(actor.zone)) {
+    return reject(
+      state,
+      "backdoorCutRequiresPerimeter",
+      "Backdoor Cut wymaga startu z obwodu.",
+    );
+  }
+  if (command.targetId !== state.ballHandlerId) {
+    return reject(
+      state,
+      "invalidTarget",
+      "Backdoor Cut musi wskazywać aktualnego posiadacza piłki.",
+    );
+  }
+
+  if (card.effect?.kind !== "backdoorCut") {
+    return reject(
+      state,
+      "invalidCardDefinition",
+      "Backdoor Cut wymaga strojalnej definicji efektu ruchu.",
+    );
+  }
+
+  const opened =
+    state.defense.intent.onBallPressure >= card.effect.minOnBallPressure &&
+    (!card.effect.requiresNoHelp || state.defense.intent.helpOnDrive === false);
+  const nextState: PossessionState = {
+    ...state,
+    players: movePlayer(state.players, actor.id, "paint"),
+    openPlayerIds: opened ? addUnique(state.openPlayerIds, actor.id) : state.openPlayerIds,
+  };
+  return finishCard(state, command, card, nextState, [
+    { type: "backdoorCutResolved", playerId: actor.id, opened },
+  ]);
+}
+
+function playStepBack(
+  state: PossessionState,
+  command: PlayCardCommand,
+  card: CardDefinition,
+  actor: PlayerState,
+): RuleResult {
+  const ballRejection = requireBallHandler(state, actor);
+  if (ballRejection !== undefined) return rejected(state, ballRejection);
+  if (!PERIMETER_ZONES.includes(actor.zone)) {
+    return reject(
+      state,
+      "stepBackRequiresPerimeter",
+      "Step Back wymaga posiadacza piłki na obwodzie.",
+    );
+  }
+  if (state.stepBackReady !== undefined) {
+    return reject(
+      state,
+      "stepBackAlreadyReady",
+      "Step Back jest już przygotowany dla tego posiadania.",
+    );
+  }
+
+  if (card.effect?.kind !== "stepBack") {
+    return reject(
+      state,
+      "invalidCardDefinition",
+      "Step Back wymaga strojalnej definicji separacji.",
+    );
+  }
+
+  return finishCard(
+    state,
+    command,
+    card,
+    {
+      ...state,
+      stepBackReady: actor.id,
+      stepBackCreatedSeparation: card.effect.createdSeparation,
+    },
+    [{ type: "stepBackPrepared", playerId: actor.id }],
   );
 }
 
@@ -402,10 +574,16 @@ function finishCard(
     ...(command.targetId === undefined ? {} : { targetId: command.targetId }),
   };
   const actionEvents = [cardPlayed, ...extraEvents] as const;
+  const preservesStepBack =
+    card.kind === "stepBack" ||
+    (card.kind === "shot" && previousState.stepBackReady === command.actorId);
   const commonState: PossessionState = {
     ...changedState,
     shotClock,
     hand: removeFirst(previousState.hand, card.id),
+    ...(!preservesStepBack
+      ? { stepBackReady: undefined, stepBackCreatedSeparation: undefined }
+      : {}),
     history: [...previousState.history, action],
     events: [...previousState.events, ...actionEvents],
   };
@@ -461,6 +639,13 @@ export function calculateShotQuality(
     modifiers.push({
       source: "advantage",
       value: state.advantage * rules.advantageBonusPerPoint,
+    });
+  }
+
+  if (state.stepBackReady === shooter.id && state.stepBackCreatedSeparation !== undefined) {
+    modifiers.push({
+      source: "createdSeparation",
+      value: state.stepBackCreatedSeparation,
     });
   }
 

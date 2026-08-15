@@ -14,7 +14,14 @@ export type PossessionPhase =
   | "resolvingShot"
   | "completed";
 export type PossessionOutcome = "made" | "missed" | "clockExpired";
-export type CardKind = "pass" | "screen" | "drive" | "kickOut" | "shot";
+export type CardKind =
+  | "pass"
+  | "screen"
+  | "drive"
+  | "kickOut"
+  | "shot"
+  | "backdoorCut"
+  | "stepBack";
 export type ShotQualityCategory =
   | "Bad"
   | "Contested"
@@ -56,6 +63,16 @@ export interface CardDefinition {
   readonly kind: CardKind;
   readonly timeCost: number;
   readonly targetMode: "none" | "teammate" | "ballHandler";
+  readonly effect?:
+    | {
+        readonly kind: "backdoorCut";
+        readonly minOnBallPressure: number;
+        readonly requiresNoHelp: boolean;
+      }
+    | {
+        readonly kind: "stepBack";
+        readonly createdSeparation: number;
+      };
 }
 
 export interface PlayedAction {
@@ -74,6 +91,7 @@ export interface ShotModifier {
     | "onBallPressure"
     | "createdOpenLook"
     | "advantage"
+    | "createdSeparation"
     | "defensiveResponse"
     | "opponentAdvantage"
     | "exposedShooter";
@@ -126,6 +144,9 @@ export interface PossessionState {
   readonly defense: DefenseState;
   readonly rules: PossessionRules;
   readonly advantage: number;
+  /** Zawodnik, który przygotował jednorazową przestrzeń do rzutu za 2. */
+  readonly stepBackReady?: PlayerId;
+  readonly stepBackCreatedSeparation?: number;
   readonly screenedPlayerIds: readonly PlayerId[];
   readonly openPlayerIds: readonly PlayerId[];
   readonly hand: readonly CardId[];
@@ -164,7 +185,11 @@ export type RejectionCode =
   | "invalidTarget"
   | "screenRequiresOffBallActor"
   | "driveRequiresPerimeter"
-  | "kickOutRequiresPaint";
+  | "kickOutRequiresPaint"
+  | "backdoorCutRequiresOffBallActor"
+  | "backdoorCutRequiresPerimeter"
+  | "stepBackRequiresPerimeter"
+  | "stepBackAlreadyReady";
 
 export interface ActionRejection {
   readonly code: RejectionCode;
@@ -198,6 +223,13 @@ export type DomainEvent =
       readonly previous: number;
       readonly current: number;
     }
+  | {
+      readonly type: "backdoorCutResolved";
+      readonly playerId: PlayerId;
+      readonly opened: boolean;
+    }
+  | { readonly type: "stepBackPrepared"; readonly playerId: PlayerId }
+  | { readonly type: "stepBackConsumed"; readonly playerId: PlayerId }
   | {
       readonly type: "shotPrepared";
       readonly shooterId: PlayerId;

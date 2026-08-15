@@ -41,6 +41,29 @@ export const PROTOTYPE_CARDS = {
     timeCost: 3,
     targetMode: "none",
   },
+  backdoorCut: {
+    id: "backdoorCut",
+    name: "Backdoor Cut",
+    kind: "backdoorCut",
+    timeCost: 2,
+    targetMode: "ballHandler",
+    effect: {
+      kind: "backdoorCut",
+      minOnBallPressure: 8,
+      requiresNoHelp: true,
+    },
+  },
+  stepBack: {
+    id: "stepBack",
+    name: "Step Back",
+    kind: "stepBack",
+    timeCost: 3,
+    targetMode: "none",
+    effect: {
+      kind: "stepBack",
+      createdSeparation: 12,
+    },
+  },
 } as const satisfies CardCatalog;
 
 export const PROTOTYPE_SETUP: PossessionSetup = {

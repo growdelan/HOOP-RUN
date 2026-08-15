@@ -394,6 +394,7 @@ function formatModifier(modifier: ShotModifier): string {
     onBallPressure: "Presja na piłce",
     createdOpenLook: "Otwarta pozycja",
     advantage: "Advantage",
+    createdSeparation: "Step Back",
     defensiveResponse: "Odpowiedź obrony",
     opponentAdvantage: "Przewaga przeciwnika",
     exposedShooter: "Odsłonięty strzelec",

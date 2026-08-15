@@ -23,6 +23,7 @@ import {
   getLegalDefenseTargets,
   playDefenseCard,
   previewDefenseCardImpact,
+  previewOffenseCardImpact,
   resetMatch,
   resolveOpponentShot,
   xorshift32RandomSource,
@@ -216,7 +217,8 @@ export class MatchSession {
     }
     this.selectedDefenseCardId = cardId;
     const effect = card.effects[state.currentAction.kind];
-    this.feedbackValue = `${effect?.explanation ?? card.risk} Wskaż podświetlony cel.`;
+    const impact = previewDefenseCardImpact(state, cardId, defenseCards);
+    this.feedbackValue = `${impact?.explanation ?? effect?.explanation ?? card.risk} Wskaż podświetlony cel.`;
   }
 
   public selectPlayer(playerId: PlayerId): void {
@@ -546,7 +548,7 @@ function groupDefenseCards(
       id: card.id,
       name: card.name,
       kind: card.kind,
-      timeCost: card.timeCost + (effect?.extraClockCost ?? 0),
+      timeCost: impact?.timeCost ?? card.timeCost + (effect?.extraClockCost ?? 0),
       count,
       status:
         count === 0
@@ -556,7 +558,8 @@ function groupDefenseCards(
             : legal
               ? "available"
               : "blocked",
-      description: effect?.explanation ?? "Brak zastosowania przeciw tej akcji.",
+      description:
+        impact?.explanation ?? effect?.explanation ?? "Brak zastosowania przeciw tej akcji.",
       insights:
         impact === undefined
           ? [`BRAK EFEKTU: nie odpowiada na ${state.currentAction.name}.`]
@@ -591,6 +594,8 @@ function offenseCardDescription(kind: CardView["kind"]): string {
     drive: "Wejdź z obwodu do paint.",
     kickOut: "Odegraj z paint na obwód.",
     shot: "Oddaj rzut i zakończ posiadanie.",
+    backdoorCut: "Zejdź bez piłki z obwodu do paint.",
+    stepBack: "Stwórz przestrzeń do najbliższego rzutu za 2.",
   }[kind];
 }
 
@@ -664,6 +669,48 @@ function offenseCardInsights(
     ];
   }
 
+  if (kind === "backdoorCut") {
+    const cutter = state.players.find(
+      (player) =>
+        player.side === "offense" &&
+        player.id !== ballHandler.id &&
+        player.zone !== "paint",
+    );
+    const impact =
+      cutter === undefined
+        ? undefined
+        : previewOffenseCardImpact(
+            state,
+            {
+              cardId: "backdoorCut",
+              actorId: cutter.id,
+              targetId: ballHandler.id,
+            },
+            PROTOTYPE_CARDS,
+          );
+    if (impact === undefined) return ["BRAK LEGALNEGO CUTTERA."];
+    return [
+      `KOSZT: ${impact.timeCost}s`,
+      impact.explanation,
+      `STATUS: ${impact.status}`,
+      `WPŁYW NA RZUT CUTTERA: ${signed(impact.shotQualityDelta)} PP`,
+    ];
+  }
+  if (kind === "stepBack") {
+    const impact = previewOffenseCardImpact(
+      state,
+      { cardId: "stepBack", actorId: ballHandler.id },
+      PROTOTYPE_CARDS,
+    );
+    if (impact === undefined) return ["Step Back jest teraz nielegalny."];
+    return [
+      `KOSZT: ${impact.timeCost}s`,
+      impact.explanation,
+      `STATUS: ${impact.status}`,
+      `WPŁYW NA NAJBLIŻSZY RZUT: ${signed(impact.shotQualityDelta)} PP`,
+    ];
+  }
+
   const quality = calculateShotQuality(state, ballHandler);
   return [
     `SZANSA TRAFIENIA: ${quality.totalScore}%`,
@@ -684,8 +731,19 @@ function defenseCardInsights(
     insights.push(`SZANSA STRATY: ${Math.round(impact.turnoverChance * 100)}%`);
   }
   if (impact.exposureId !== undefined) {
+    if (impact.exposureAdvantageDelta > 0) {
+      insights.push(
+        `RYZYKO: odsłania ${playerName(state, impact.exposureId)}; jego udział w następnej akcji odda +${impact.exposureAdvantageDelta} ADV.`,
+      );
+    } else {
+      insights.push(
+        `RYZYKO: odsłania ${playerName(state, impact.exposureId)} (+${state.shotQualityRules.openLookBonus} PP, jeśli rzuca).`,
+      );
+    }
+  }
+  if (impact.consumedExposureId !== undefined) {
     insights.push(
-      `RYZYKO: odsłania ${playerName(state, impact.exposureId)} (+${state.shotQualityRules.openLookBonus} PP, jeśli rzuca)`,
+      `ZUŻYCIE ODSŁONIĘCIA: ${playerName(state, impact.consumedExposureId)} oddaje +${impact.consumedExposureAdvantageDelta} ADV.`,
     );
   }
   return insights;
@@ -701,6 +759,9 @@ function formatDefenseEvents(events: readonly DefenseDomainEvent[]): string {
       if (event.type === "opponentActionResolved") return [event.explanation];
       if (event.type === "opponentAdvantageChanged") {
         return [`Przewaga przeciwnika: ${event.previous} → ${event.current}.`];
+      }
+      if (event.type === "exposureConsumed") {
+        return [`Odsłonięcie zużyte: +${event.advantageDelta} ADV.`];
       }
       if (event.type === "turnoverForced") return ["WYMUSZONA STRATA przeciwnika."];
       if (event.type === "opponentClockExpired") return ["KONIEC CZASU przeciwnika."];
@@ -723,6 +784,7 @@ function formatModifier(modifier: ShotModifier): string {
     onBallPressure: "Presja na piłce",
     createdOpenLook: "Otwarta pozycja",
     advantage: "Advantage",
+    createdSeparation: "Step Back",
     defensiveResponse: "Odpowiedzi obrony",
     opponentAdvantage: "Przewaga przeciwnika",
     exposedShooter: "Odsłonięty strzelec",

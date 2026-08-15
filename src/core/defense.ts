@@ -1,6 +1,7 @@
 import type {
   CardId,
   DefenseAssignment,
+  DefenseIntent,
   PlayerId,
   PlayerState,
   ShotModifier,
@@ -17,7 +18,9 @@ export type DefenseCardKind =
   | "switch"
   | "goUnder"
   | "helpDefense"
-  | "doubleTeam";
+  | "doubleTeam"
+  | "hedge"
+  | "closeOut";
 export type OpponentActionKind = "screen" | "drive" | "pass" | "shoot";
 export type DefensePossessionPhase =
   | "playerResponse"
@@ -49,6 +52,26 @@ export type OpponentPlanCatalog = Readonly<
   Record<string, OpponentPlanDefinition>
 >;
 
+export interface WeightedOpponentPlan {
+  readonly planId: string;
+  readonly weight: number;
+}
+
+export interface WeightedDefenseIntent {
+  readonly intentId: string;
+  readonly weight: number;
+}
+
+export interface OpponentProfile {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly plans: OpponentPlanCatalog;
+  readonly planWeights: readonly WeightedOpponentPlan[];
+  readonly defenseIntents: readonly DefenseIntent[];
+  readonly intentWeights: readonly WeightedDefenseIntent[];
+}
+
 export interface DefenseInteraction {
   readonly advantageDelta: number;
   readonly contestDelta: number;
@@ -57,6 +80,14 @@ export interface DefenseInteraction {
   readonly exposure: "none" | "actionActor" | "actionTarget";
   readonly assignmentChange: "none" | "switchScreenAssignments";
   readonly explanation: string;
+  readonly exposureAdvantageDelta?: number;
+  readonly allowedActionActorZones?: readonly Zone[];
+  readonly whenOpponentAdvantageAtLeast?: {
+    readonly threshold: number;
+    readonly advantageDelta: number;
+    readonly contestDelta: number;
+    readonly explanation: string;
+  };
 }
 
 export interface DefenseCardDefinition {
@@ -109,6 +140,11 @@ export type DefenseDomainEvent =
       readonly previous: number;
       readonly current: number;
     }
+  | {
+      readonly type: "exposureConsumed";
+      readonly playerId: PlayerId;
+      readonly advantageDelta: number;
+    }
   | { readonly type: "coverageSwitched" }
   | { readonly type: "opponentExposed"; readonly playerId: PlayerId }
   | { readonly type: "turnoverForced"; readonly roll: number }
@@ -150,6 +186,7 @@ export interface DefensePossessionState {
   readonly shotContest: number;
   readonly turnoverPressure: number;
   readonly exposedOpponentIds: readonly PlayerId[];
+  readonly exposureAdvantageById?: Readonly<Record<PlayerId, number>>;
   readonly hand: readonly CardId[];
   readonly history: readonly DefensePlayedAction[];
   readonly events: readonly DefenseDomainEvent[];
@@ -171,9 +208,16 @@ export interface DefenseCardImpact {
   readonly timeCost: number;
   readonly nextOpponentAdvantage: number;
   readonly shotQualityDelta: number;
+  readonly contestDelta: number;
+  readonly interactionAdvantageDelta: number;
   readonly turnoverPressure: number;
   readonly turnoverChance: number;
   readonly exposureId?: PlayerId;
+  readonly consumedExposureId?: PlayerId;
+  /** Dodatkowa przewaga tworzona przez tę kartę dla następnej akcji. */
+  readonly exposureAdvantageDelta: number;
+  readonly consumedExposureAdvantageDelta: number;
+  readonly explanation: string;
 }
 
 export type DefenseRejectionCode =
@@ -205,26 +249,25 @@ export type DefenseRuleResult =
 
 export function createDefensePossession(
   setup: DefensePossessionSetup,
-  plans: OpponentPlanCatalog,
+  plans: OpponentPlanCatalog | OpponentProfile,
   rngState: number,
   randomSource: RandomSource = xorshift32RandomSource,
 ): DefensePossessionState {
-  const availablePlans = Object.values(plans);
-  if (availablePlans.length === 0) {
+  const planCatalog = isOpponentProfile(plans) ? plans.plans : plans;
+  const weightedPlans = isOpponentProfile(plans)
+    ? plans.planWeights
+    : Object.values(planCatalog).map((plan) => ({ planId: plan.id, weight: 1 }));
+  const selectedPlanId = selectWeightedId(weightedPlans, rngState, randomSource);
+  const selectedPlan = planCatalog[selectedPlanId.value];
+  if (selectedPlan === undefined) {
     throw new Error("Przeciwnik wymaga co najmniej jednego planu.");
   }
-  const planStep = randomSource.next(normalizeSeed(rngState));
-  const planIndex = Math.min(
-    availablePlans.length - 1,
-    Math.floor(planStep.value * availablePlans.length),
-  );
-  const selectedPlan = availablePlans[planIndex];
-  if (selectedPlan === undefined || selectedPlan.steps[0] === undefined) {
+  if (selectedPlan.steps[0] === undefined) {
     throw new Error("Plan przeciwnika wymaga co najmniej jednego kroku.");
   }
 
   return {
-    rngState: planStep.state,
+    rngState: selectedPlanId.rngState,
     phase: "playerResponse",
     shotClock: setup.shotClock,
     players: setup.players.map((player) => ({ ...player })),
@@ -241,6 +284,7 @@ export function createDefensePossession(
     shotContest: 0,
     turnoverPressure: 0,
     exposedOpponentIds: [],
+    exposureAdvantageById: {},
     hand: [...setup.hand],
     history: [],
     events: [],
@@ -252,18 +296,56 @@ export function createDefensePossession(
   };
 }
 
+export function selectOpponentPlan(
+  profile: OpponentProfile,
+  rngState: number,
+  randomSource: RandomSource = xorshift32RandomSource,
+): { readonly plan: OpponentPlanDefinition; readonly rngState: number } {
+  const selected = selectWeightedId(profile.planWeights, rngState, randomSource);
+  const plan = profile.plans[selected.value];
+  if (plan === undefined) {
+    throw new Error(`Profil ${profile.id} wskazuje nieznany plan ${selected.value}.`);
+  }
+  return { plan, rngState: selected.rngState };
+}
+
+export function selectOpponentDefenseIntent(
+  profile: OpponentProfile,
+  rngState: number,
+  randomSource: RandomSource = xorshift32RandomSource,
+): { readonly intent: DefenseIntent; readonly rngState: number } {
+  const selected = selectWeightedId(
+    profile.intentWeights,
+    rngState,
+    randomSource,
+  );
+  const intent = profile.defenseIntents.find(
+    (candidate) => candidate.id === selected.value,
+  );
+  if (intent === undefined) {
+    throw new Error(
+      `Profil ${profile.id} wskazuje nieznaną intencję ${selected.value}.`,
+    );
+  }
+  return { intent, rngState: selected.rngState };
+}
+
+export const selectWeightedOpponentIntent = selectOpponentDefenseIntent;
+
 export function playDefenseCard(
   state: DefensePossessionState,
   command: PlayDefenseCardCommand,
   cards: DefenseCardCatalog,
-  plans: OpponentPlanCatalog,
+  plans: OpponentPlanCatalog | OpponentProfile,
   randomSource: RandomSource = xorshift32RandomSource,
 ): DefenseRuleResult {
   const rejection = validateDefenseCard(state, command, cards);
   if (rejection !== undefined) return rejected(state, rejection);
 
   const card = cards[command.cardId];
-  const interaction = card?.effects[state.currentAction.kind];
+  const interaction = card === undefined
+    ? undefined
+    : resolveDefenseInteraction(state, card);
   if (card === undefined || interaction === undefined) {
     return reject(
       state,
@@ -271,7 +353,8 @@ export function playDefenseCard(
       "Ta karta nie odpowiada na aktualną akcję przeciwnika.",
     );
   }
-  const plan = plans[state.plan.id];
+  const planCatalog = isOpponentProfile(plans) ? plans.plans : plans;
+  const plan = planCatalog[state.plan.id];
   if (plan === undefined) {
     return reject(state, "unknownPlan", "Nie znaleziono aktywnego planu przeciwnika.");
   }
@@ -294,10 +377,26 @@ export function playDefenseCard(
     interaction.assignmentChange === "switchScreenAssignments"
       ? switchScreenAssignments(state.assignments, state.currentAction)
       : state.assignments.map((assignment) => ({ ...assignment }));
+  const withoutConsumedExposure =
+    impact.consumedExposureId === undefined
+      ? [...state.exposedOpponentIds]
+      : state.exposedOpponentIds.filter(
+          (playerId) => playerId !== impact.consumedExposureId,
+        );
   const exposedOpponentIds =
     exposureId === undefined
-      ? [...state.exposedOpponentIds]
-      : addUnique(state.exposedOpponentIds, exposureId);
+      ? withoutConsumedExposure
+      : addUnique(withoutConsumedExposure, exposureId);
+  const exposureAdvantageById = { ...(state.exposureAdvantageById ?? {}) };
+  if (impact.consumedExposureId !== undefined) {
+    delete exposureAdvantageById[impact.consumedExposureId];
+  }
+  if (
+    exposureId !== undefined &&
+    impact.exposureAdvantageDelta > 0
+  ) {
+    exposureAdvantageById[exposureId] = impact.exposureAdvantageDelta;
+  }
   const turnoverPressure = impact.turnoverPressure;
   const cardEvent: DefenseDomainEvent = {
     type: "defenseCardPlayed",
@@ -310,6 +409,13 @@ export function playDefenseCard(
     explanation: interaction.explanation,
   };
   const events: DefenseDomainEvent[] = [cardEvent, actionEvent];
+  if (impact.consumedExposureId !== undefined) {
+    events.push({
+      type: "exposureConsumed",
+      playerId: impact.consumedExposureId,
+      advantageDelta: impact.consumedExposureAdvantageDelta,
+    });
+  }
   if (opponentAdvantage !== state.opponentAdvantage) {
     events.push({
       type: "opponentAdvantageChanged",
@@ -332,6 +438,7 @@ export function playDefenseCard(
     shotContest: state.shotContest + interaction.contestDelta,
     turnoverPressure,
     exposedOpponentIds,
+    exposureAdvantageById,
     hand: removeOne(state.hand, card.id),
     history: [
       ...state.history,
@@ -432,7 +539,7 @@ export function getLegalDefenseTargets(
   if (
     card === undefined ||
     !state.hand.includes(cardId) ||
-    card.effects[state.currentAction.kind] === undefined ||
+    resolveDefenseInteraction(state, card) === undefined ||
     !Number.isInteger(card.timeCost) ||
     card.timeCost <= 0
   ) {
@@ -447,13 +554,30 @@ export function previewDefenseCardImpact(
   cards: DefenseCardCatalog,
 ): DefenseCardImpact | undefined {
   const card = cards[cardId];
-  const interaction = card?.effects[state.currentAction.kind];
+  const interaction = card === undefined
+    ? undefined
+    : resolveDefenseInteraction(state, card);
   if (card === undefined || interaction === undefined) return undefined;
 
+  const consumedExposureId = state.exposedOpponentIds.find((playerId) => {
+    const exposureAdvantage = state.exposureAdvantageById?.[playerId] ?? 0;
+    return (
+      exposureAdvantage > 0 &&
+      (playerId === state.currentAction.actorId ||
+        playerId === state.currentAction.targetId)
+    );
+  });
+  const consumedExposureAdvantageDelta =
+    consumedExposureId === undefined
+      ? 0
+      : state.exposureAdvantageById?.[consumedExposureId] ?? 0;
+  const exposureAdvantageDelta = interaction.exposureAdvantageDelta ?? 0;
+
   const nextOpponentAdvantage = clampAdvantage(
-    state.opponentAdvantage +
+      state.opponentAdvantage +
       state.currentAction.baseAdvantageDelta +
-      interaction.advantageDelta,
+      interaction.advantageDelta +
+      consumedExposureAdvantageDelta,
   );
   const turnoverPressure = Math.max(0, interaction.turnoverPressureDelta);
   const exposureId = exposureTarget(state.currentAction, interaction.exposure);
@@ -470,7 +594,13 @@ export function previewDefenseCardImpact(
       turnoverPressure >= 2
         ? Math.min(0.6, turnoverPressure * 0.15)
         : 0,
+    contestDelta: interaction.contestDelta,
+    interactionAdvantageDelta: interaction.advantageDelta,
     ...(exposureId === undefined ? {} : { exposureId }),
+    ...(consumedExposureId === undefined ? {} : { consumedExposureId }),
+    exposureAdvantageDelta,
+    consumedExposureAdvantageDelta,
+    explanation: interaction.explanation,
   };
 }
 
@@ -533,7 +663,7 @@ function validateDefenseCard(
       "Koszt czasu karty obrony musi być dodatnią liczbą całkowitą.",
     );
   }
-  if (card.effects[state.currentAction.kind] === undefined) {
+  if (resolveDefenseInteraction(state, card) === undefined) {
     return rejection(
       "cardNotLegalAgainstAction",
       "Ta karta nie odpowiada na aktualną akcję przeciwnika.",
@@ -543,6 +673,39 @@ function validateDefenseCard(
     return rejection("invalidTarget", "Karta wskazuje niepoprawny cel dla tej reakcji.");
   }
   return undefined;
+}
+
+function resolveDefenseInteraction(
+  state: DefensePossessionState,
+  card: DefenseCardDefinition,
+): DefenseInteraction | undefined {
+  const interaction = card.effects[state.currentAction.kind];
+  if (interaction === undefined) return undefined;
+
+  if (interaction.allowedActionActorZones !== undefined) {
+    const actor = findPlayer(state.players, state.currentAction.actorId);
+    if (
+      actor === undefined ||
+      !interaction.allowedActionActorZones.includes(actor.zone)
+    ) {
+      return undefined;
+    }
+  }
+
+  const conditional = interaction.whenOpponentAdvantageAtLeast;
+  if (
+    conditional === undefined ||
+    state.opponentAdvantage < conditional.threshold
+  ) {
+    return interaction;
+  }
+
+  return {
+    ...interaction,
+    advantageDelta: conditional.advantageDelta,
+    contestDelta: conditional.contestDelta,
+    explanation: conditional.explanation,
+  };
 }
 
 function calculateOpponentShotQuality(
@@ -647,6 +810,45 @@ function findPlayer(
   playerId: PlayerId,
 ): PlayerState | undefined {
   return players.find((player) => player.id === playerId);
+}
+
+function selectWeightedId(
+  values: readonly (WeightedOpponentPlan | WeightedDefenseIntent)[],
+  rngState: number,
+  randomSource: RandomSource,
+): { readonly value: string; readonly rngState: number } {
+  if (values.length === 0) {
+    throw new Error("Losowanie profilowane wymaga co najmniej jednej opcji.");
+  }
+  const totalWeight = values.reduce((total, value) => {
+    if (!Number.isInteger(value.weight) || value.weight <= 0) {
+      throw new Error("Waga profilu musi być dodatnią liczbą całkowitą.");
+    }
+    return total + value.weight;
+  }, 0);
+  const step = randomSource.next(normalizeSeed(rngState));
+  let cursor = step.value * totalWeight;
+  for (const value of values) {
+    cursor -= value.weight;
+    if (cursor < 0) {
+      return {
+        value: "planId" in value ? value.planId : value.intentId,
+        rngState: step.state,
+      };
+    }
+  }
+  const last = values.at(-1);
+  if (last === undefined) throw new Error("Brak ostatniej opcji profilowanego losowania.");
+  return {
+    value: "planId" in last ? last.planId : last.intentId,
+    rngState: step.state,
+  };
+}
+
+function isOpponentProfile(
+  value: OpponentPlanCatalog | OpponentProfile,
+): value is OpponentProfile {
+  return "plans" in value && "planWeights" in value;
 }
 
 function removeOne(values: readonly string[], value: string): readonly string[] {

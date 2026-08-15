@@ -4,6 +4,9 @@ import {
   PROTOTYPE_DEFENSE_DECK,
   PROTOTYPE_OFFENSE_DECK,
 } from "./prototypeMatch.ts";
+import { PROTOTYPE_OPPONENT_PROFILES } from "./prototypeDefense.ts";
+
+export { PROTOTYPE_OPPONENT_PROFILES } from "./prototypeDefense.ts";
 
 export const RUN_OPPONENT_ORDER = FIRST_RUN_OPPONENT_ORDER;
 
@@ -16,6 +19,11 @@ export const PROTOTYPE_REWARD_CATALOG = [
 
 export const PROTOTYPE_RUN_SETUP = {
   opponentIds: RUN_OPPONENT_ORDER,
+  opponentProfiles: [
+    PROTOTYPE_OPPONENT_PROFILES.fundamentals,
+    PROTOTYPE_OPPONENT_PROFILES.perimeterCrew,
+    PROTOTYPE_OPPONENT_PROFILES.paintKings,
+  ],
   offenseDeck: PROTOTYPE_OFFENSE_DECK,
   defenseDeck: PROTOTYPE_DEFENSE_DECK,
   rewardCatalog: PROTOTYPE_REWARD_CATALOG,
