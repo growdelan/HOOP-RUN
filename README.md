@@ -85,7 +85,7 @@ Uruchom:
 ./scripts/verify.sh
 ```
 
-Skrypt sprawdza rozmiar kontekstu, lint, TypeScript, testy, produkcyjny build i pełny zestaw E2E. Pipeline Pages wybiera krótki zestaw smoke przez `HOOP_RUN_E2E_SCRIPT=test:e2e:smoke`.
+Skrypt sprawdza rozmiar kontekstu, lint, TypeScript, testy i produkcyjny build. Testy E2E są uruchamiane wyłącznie jawnie; pipeline Pages wybiera krótki zestaw smoke przez `HOOP_RUN_E2E_SCRIPT=test:e2e:smoke`.
 
 Poszczególne komendy można uruchomić niezależnie:
 
@@ -96,6 +96,7 @@ npm run test
 npm run build
 npm run test:e2e
 npm run test:e2e:smoke
+HOOP_RUN_E2E_SCRIPT=test:e2e:smoke ./scripts/verify.sh
 ```
 
 Testy E2E budują aplikację, uruchamiają produkcyjny preview pod `/HOOP-RUN/` i automatyzują prawdziwe kliknięcia w canvas. Pełny `test:e2e` obejmuje start i `JAK GRAĆ`, atak i obronę, obowiązkową nagrodę oraz przejście między meczami, użycie zdobytej karty, pełny zwycięski run, kontrolowaną porażkę, podsumowanie i reset z czystymi taliami. `test:e2e:smoke` ogranicza się do startu, pierwszego meczu, bazowej ścieżki Pages i layoutu 1024×768.

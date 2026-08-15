@@ -272,7 +272,7 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 
 - Decyzja: Vitest dla logiki i Playwright dla krytycznego przepływu przeglądarkowego.
 - Uzasadnienie: reguły wymagają szybkich deterministycznych testów, a UI rzeczywistego smoke testu.
-- Konsekwencje: testy domenowe nie uruchamiają Phasera; `test:e2e` uruchamia pełny zestaw przez kontrolowany produkcyjny preview, a `test:e2e:smoke` sprawdza krótki przepływ startu, pierwszego meczu, bazę Pages i layout.
+- Konsekwencje: testy domenowe nie uruchamiają Phasera; domyślne `./scripts/verify.sh` pomija E2E, które wymagają jawnego `npm run test:e2e`, `npm run test:e2e:smoke` albo `HOOP_RUN_E2E_SCRIPT`; `test:e2e` uruchamia pełny zestaw przez kontrolowany produkcyjny preview, a `test:e2e:smoke` sprawdza krótki przepływ startu, pierwszego meczu, bazę Pages i layout.
 - Decyzja: push i pull request blokują publikację tylko na szybkim smoke E2E; pełny zestaw E2E pozostaje obowiązkową walidacją lokalną przed publikacją oraz osobnym workflow ręcznym i cotygodniowym, który nie jest zależnością deploymentu Pages.
 - Uzasadnienie: pełne runy pozostają wartościową diagnostyką, ale ich koszt renderowania na współdzielonym runnerze GitHub jest nieproporcjonalny do bramki każdego deploymentu i powoduje timeouty mimo zielonej walidacji lokalnej.
 - Konsekwencje: porażka pełnego workflow jest raportowana niezależnie, a oba workflowy przechowują przez 7 dni dostępne screenshoty, trace'y i kontekst błędu Playwrighta.
