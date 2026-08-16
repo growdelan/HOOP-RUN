@@ -290,7 +290,7 @@ test("głęboko zagnieżdżony slot nie blokuje uruchomienia strony ani nowego r
 });
 
 test("checkpoint przeżywa reload, wznawia intermission i wymaga potwierdzenia zastąpienia", async ({ page }, testInfo) => {
-  test.setTimeout(240_000);
+  test.setTimeout(720_000);
   await page.setViewportSize({ width: 1280, height: 720 });
   const diagnostics = collectDiagnostics(page);
   await page.goto("/HOOP-RUN/?seed=2&e2e=1");
@@ -299,6 +299,17 @@ test("checkpoint przeżywa reload, wznawia intermission i wymaga potwierdzenia z
   const offer = await snapshot(page);
   const reward = offer.rewardOffer?.[0];
   if (reward === undefined) throw new Error("Brak nagrody do checkpointu.");
+
+  const uninterruptedPage = await page.context().newPage();
+  const uninterruptedDiagnostics = collectDiagnostics(uninterruptedPage);
+  await uninterruptedPage.goto("/HOOP-RUN/?seed=2&e2e=1");
+  await startRun(uninterruptedPage);
+  await playUntilRunScreenChanges(uninterruptedPage);
+  expect((await snapshot(uninterruptedPage)).rewardOffer).toEqual(offer.rewardOffer);
+  await clickGame(uninterruptedPage, 265 + reward.index * 390, 385);
+  await clickGame(uninterruptedPage, 640, 577);
+  const uninterruptedStageTwo = await snapshot(uninterruptedPage);
+
   await clickGame(page, 265 + reward.index * 390, 385);
   const beforeSave = await snapshot(page);
   expect(beforeSave.screen).toBe("intermission");
@@ -322,19 +333,71 @@ test("checkpoint przeżywa reload, wznawia intermission i wymaga potwierdzenia z
   });
   await clickGame(page, 640, 577);
   await expect.poll(() => snapshot(page)).toMatchObject({ screen: "match", stage: 2, match: { shotClock: 14 } });
+  expect(runGameplayProjection(await snapshot(page))).toEqual(
+    runGameplayProjection(uninterruptedStageTwo),
+  );
 
-  await page.reload();
-  await clickGame(page, 640, 411);
-  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "confirmNewRun", needsNewRunConfirmation: true });
-  await clickGame(page, 480, 499);
-  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "start", canContinue: true });
-  await clickGame(page, 640, 411);
-  await clickGame(page, 800, 499);
-  await expect.poll(() => snapshot(page)).toMatchObject({ screen: "match", stage: 1, canContinue: false });
-  expect(await page.evaluate(() => localStorage.getItem("hoop-run:run-checkpoint"))).toBeNull();
+  const confirmationPage = await page.context().newPage();
+  const confirmationDiagnostics = collectDiagnostics(confirmationPage);
+  await confirmationPage.goto("/HOOP-RUN/?seed=2&e2e=1");
+  await clickGame(confirmationPage, 640, 411);
+  await expect.poll(() => snapshot(confirmationPage)).toMatchObject({
+    screen: "confirmNewRun",
+    needsNewRunConfirmation: true,
+  });
+  await clickGame(confirmationPage, 480, 499);
+  await expect.poll(() => snapshot(confirmationPage)).toMatchObject({
+    screen: "start",
+    canContinue: true,
+  });
+  await clickGame(confirmationPage, 640, 411);
+  await clickGame(confirmationPage, 800, 499);
+  await expect.poll(() => snapshot(confirmationPage)).toMatchObject({
+    screen: "match",
+    stage: 1,
+    canContinue: false,
+  });
+  expect(await confirmationPage.evaluate(() => localStorage.getItem("hoop-run:run-checkpoint"))).toBeNull();
+  expect(confirmationDiagnostics.consoleErrors).toEqual([]);
+  expect(confirmationDiagnostics.failedRequests).toEqual([]);
+  expect(confirmationDiagnostics.badResponses).toEqual([]);
+  await confirmationPage.close();
+
+  const uninterruptedTrajectory: RunViewModel[] = [];
+  const resumedTrajectory: RunViewModel[] = [];
+  const [uninterruptedResult, resumedResult] = await Promise.all([
+    playRun(
+      uninterruptedPage,
+      "prepared",
+      "contextual",
+      undefined,
+      uninterruptedTrajectory,
+    ),
+    playRun(
+      page,
+      "prepared",
+      "contextual",
+      undefined,
+      resumedTrajectory,
+    ),
+  ]);
+  expect(resumedTrajectory.map(runGameplayProjection)).toEqual(
+    uninterruptedTrajectory.map(runGameplayProjection),
+  );
+  expect(runGameplayProjection(resumedResult.view)).toEqual(
+    runGameplayProjection(uninterruptedResult.view),
+  );
+  expect(resumedResult.view.summary?.outcome).toBe(
+    uninterruptedResult.view.summary?.outcome,
+  );
+  expect(resumedResult.view.summary?.outcome).toMatch(/success|failure/);
   expect(diagnostics.consoleErrors).toEqual([]);
   expect(diagnostics.failedRequests).toEqual([]);
   expect(diagnostics.badResponses).toEqual([]);
+  expect(uninterruptedDiagnostics.consoleErrors).toEqual([]);
+  expect(uninterruptedDiagnostics.failedRequests).toEqual([]);
+  expect(uninterruptedDiagnostics.badResponses).toEqual([]);
+  await uninterruptedPage.close();
 });
 
 test("uszkodzony checkpoint można odrzucić bez częściowego wznowienia", async ({ page }, testInfo) => {
@@ -380,6 +443,7 @@ async function playRun(
   offensePolicy: "immediate" | "prepared",
   defensePolicy: "pressure" | "contextual",
   evidence?: TestInfo,
+  trajectory?: RunViewModel[],
 ): Promise<{
   view: RunViewModel;
   sawRewardInHand: boolean;
@@ -395,6 +459,8 @@ async function playRun(
   let intermissionEvidenceAttached = false;
   for (let step = 0; step < 400; step += 1) {
     const run = await snapshot(page);
+    trajectory?.push(run);
+    selectedRewardId ??= run.rewards.find((reward) => reward.role === "offense")?.cardId;
     if (run.screen === "summary") {
       return { view: run, sawRewardInHand, usedReward, rewardEffectObserved };
     }
@@ -597,6 +663,24 @@ function shotChance(view: MatchViewModel): number {
 
 function deckSize(deck: readonly RunDeckCardView[]): number {
   return deck.reduce((total, card) => total + card.count, 0);
+}
+
+function runGameplayProjection(view: RunViewModel) {
+  return {
+    screen: view.screen,
+    stage: view.stage,
+    opponent: view.opponent,
+    match: view.match,
+    rewardOffer: view.rewardOffer,
+    selectedReward: view.selectedReward,
+    offenseDeck: view.offenseDeck,
+    defenseDeck: view.defenseDeck,
+    rewards: view.rewards,
+    results: view.results,
+    summary: view.summary === undefined
+      ? undefined
+      : { ...view.summary, elapsedSeconds: 0 },
+  };
 }
 
 async function attachCanvasEvidence(

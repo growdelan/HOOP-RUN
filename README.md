@@ -85,7 +85,7 @@ Uruchom:
 ./scripts/verify.sh
 ```
 
-Skrypt sprawdza rozmiar kontekstu, lint, TypeScript, testy i produkcyjny build. Testy E2E są uruchamiane wyłącznie jawnie; pipeline Pages wybiera krótki zestaw smoke przez `HOOP_RUN_E2E_SCRIPT=test:e2e:smoke`.
+Skrypt sprawdza rozmiar kontekstu, lint, TypeScript, testy i produkcyjny build. Nie uruchamia pełnych E2E; pipeline Pages wybiera wyłącznie krótki zestaw smoke przez `HOOP_RUN_E2E_SCRIPT=test:e2e:smoke`.
 
 Poszczególne komendy można uruchomić niezależnie:
 
@@ -94,18 +94,18 @@ npm run lint
 npm run typecheck
 npm run test
 npm run build
-npm run test:e2e
+npm run test:e2e:manual # wyłącznie ręcznie przez użytkownika
 npm run test:e2e:smoke
 HOOP_RUN_E2E_SCRIPT=test:e2e:smoke ./scripts/verify.sh
 ```
 
-Testy E2E budują aplikację, uruchamiają produkcyjny preview pod `/HOOP-RUN/` i automatyzują prawdziwe kliknięcia w canvas. Pełny `test:e2e` obejmuje start i `JAK GRAĆ`, atak i obronę, obowiązkową nagrodę oraz przejście między meczami, użycie zdobytej karty, pełny zwycięski run, kontrolowaną porażkę, podsumowanie i reset z czystymi taliami. `test:e2e:smoke` ogranicza się do startu, pierwszego meczu, bazowej ścieżki Pages i layoutu 1024×768.
+Testy E2E budują aplikację, uruchamiają produkcyjny preview pod `/HOOP-RUN/` i automatyzują prawdziwe kliknięcia w canvas. Pełny `test:e2e:manual` obejmuje całą kosztowną macierz i jest wyłącznie opcjonalną komendą użytkownika — agent jej nie uruchamia i nie czeka na jej wynik. `test:e2e:smoke` ogranicza się do startu, pierwszego meczu, bazowej ścieżki Pages i layoutu 1024×768.
 
 ## CI i GitHub Pages
 
 Workflow `.github/workflows/verify-pages.yml` uruchamia lint, typecheck, testy domenowe, build i smoke E2E przez `./scripts/verify.sh`, przygotowuje katalog `dist` jako artefakt GitHub Pages, a po sukcesie publikuje go z gałęzi `main`. Pull requesty przechodzą tę samą walidację, ale nie uruchamiają joba wdrożeniowego.
 
-Pełny zestaw przeglądarkowy działa niezależnie w `.github/workflows/full-e2e.yml`: można uruchomić go ręcznie przez `workflow_dispatch`, a harmonogram wykonuje go w każdy poniedziałek o 04:00 UTC. Nie blokuje deploymentu Pages. Przy porażce workflowy przechowują dostępne pliki `test-results` przez 7 dni, w tym trace'y, screenshoty i kontekst błędu Playwrighta.
+Pełny zestaw przeglądarkowy działa niezależnie w `.github/workflows/full-e2e.yml` wyłącznie po ręcznym `workflow_dispatch`. Nie ma harmonogramu i nie blokuje deploymentu Pages ani pracy agenta. Przy porażce workflowy przechowują dostępne pliki `test-results` przez 7 dni, w tym trace'y, screenshoty i kontekst błędu Playwrighta.
 
 Opublikowana gra jest dostępna pod adresem `https://growdelan.github.io/HOOP-RUN/`.
 

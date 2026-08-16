@@ -38,6 +38,11 @@ for script_name in "${required_scripts[@]}"; do
 done
 
 if [ -n "${HOOP_RUN_E2E_SCRIPT:-}" ]; then
+    if [ "$HOOP_RUN_E2E_SCRIPT" = "test:e2e:manual" ]; then
+        echo "Błąd: pełne E2E są wyłącznie ręczną komendą użytkownika i nie mogą działać przez verify.sh." >&2
+        exit 1
+    fi
+
     if ! has_script "$HOOP_RUN_E2E_SCRIPT"; then
         echo "Błąd: package.json nie definiuje wskazanego skryptu E2E '$HOOP_RUN_E2E_SCRIPT'." >&2
         exit 1
@@ -46,5 +51,5 @@ if [ -n "${HOOP_RUN_E2E_SCRIPT:-}" ]; then
     echo "+ npm run $HOOP_RUN_E2E_SCRIPT"
     npm run "$HOOP_RUN_E2E_SCRIPT"
 else
-    echo "INFO: testy E2E pominięte; uruchom je jawnie przez npm run test:e2e albo HOOP_RUN_E2E_SCRIPT."
+    echo "INFO: Playwright pominięty; pełne E2E może uruchomić wyłącznie użytkownik przez npm run test:e2e:manual."
 fi

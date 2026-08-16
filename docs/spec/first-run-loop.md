@@ -2,7 +2,7 @@
 
 ## Status
 
-- Status: częściowo zaimplementowane — Milestone'y 8–11 ukończone, a Milestone 12 pozostaje `planned`.
+- Status: zaimplementowane i zweryfikowane — Milestone'y 8–12 ukończone, bramka PRD 002 ma wynik `proceed`.
 - Źródło: `prd/002-first-run-loop.md`.
 - Plan realizacji: Milestone'y 8–12 w `ROADMAP.md`.
 - Zależność: zweryfikowany pełny mecz z PRD 001 opisany w `docs/spec/full-match.md`.

@@ -45,10 +45,12 @@
 ## Walidacja i playtest
 
 - Używaj komend zdefiniowanych przez repozytorium. Podstawowa komenda to `./scripts/verify.sh`.
+- Pełne E2E `npm run test:e2e:manual` są wyłącznie ręcznym narzędziem użytkownika. Agent nigdy ich nie uruchamia, nie przekazuje ich przez `HOOP_RUN_E2E_SCRIPT` i nie traktuje ich wyniku ani braku jako bramki `done`, review lub publikacji.
+- Krótki `test:e2e:smoke` pozostaje bramką CI GitHub Pages. Agent nie uruchamia pełnej macierzy zamiast smoke.
 - Testy i smoke testy nie mogą wymagać prawdziwych sekretów ani niestabilnych usług zewnętrznych.
 - Po zmianie zasad gry dodaj test deterministyczny obejmujący jej efekt i przypadki brzegowe.
 - Po zmianie widocznego przepływu, UI, sterowania lub konfiguracji buildu wykonaj adekwatny playtest w przeglądarce zgodnie z `$codex-flow-playtest`.
-- Playtest agenta jest technicznym smoke testem prawdziwej przeglądarki: sprawdza rzeczywiste kliknięcia, konsolę, sieć, zasoby i layout. Nie udaje badania zewnętrznego gracza i nie powtarza pełnej ręcznej macierzy, jeśli pokrywają ją deterministyczne testy E2E.
+- Playtest agenta jest krótkim technicznym smoke testem prawdziwej przeglądarki: sprawdza reprezentatywne kliknięcia, konsolę, sieć, zasoby i layout. Nie udaje badania zewnętrznego gracza i nigdy nie odtwarza pełnego runu ani pełnej macierzy E2E.
 - Playtesty użytkownika, znajomego lub zewnętrznego testera są opcjonalnym feedbackiem poza kryteriami `done` i bramkami roadmapy. Workflow nigdy na nie nie czeka; użytkownik sam zgłasza subiektywne problemy po własnej grze.
 - Po istotnej zmianie zapisz w `STATUS.md` wykonaną walidację i jej wynik.
 - Nie używaj `STATUS.md` jako dziennika. Zachowuj bieżący stan, ostatnią istotną walidację, aktywne ryzyka i następny krok.

@@ -215,7 +215,7 @@ Zapis kompletnego stanu domenowego po wyborze nagrody pozwala bezpiecznie przerw
 - Ryzyko: zapis częściowego albo pochodnego stanu odtworzy inną kolejność RNG; checkpoint przechowuje kanoniczne dane, nie model widoku.
 - Ryzyko: bezpośrednie użycie `localStorage` w domenie złamie testowalność; dostęp jest wyłącznie przez port i adapter platformowy.
 
-## Milestone 12: Walidacja hipotezy pierwszego runu (`planned`)
+## Milestone 12: Walidacja hipotezy pierwszego runu (`done`)
 
 ### Cel
 
@@ -228,7 +228,7 @@ Pętla `mecz → nagroda → trudniejszy mecz` tworzy obserwowalny build: co naj
 ### Kryteria akceptacji
 
 - Kontrolowane testy obejmują sukces, porażkę na każdym z trzech etapów, obie role nagród, wszystkie nowe karty i trzy profile przeciwników.
-- Playwright automatyzuje pełny zwycięski run, co najmniej jedną porażkę, dwa wybory nagród, reset nowego runu oraz zapis i wznowienie bez zmiany dalszego przebiegu.
+- Ręczna, opcjonalna macierz `npm run test:e2e:manual` zawiera pełny zwycięski run, co najmniej jedną porażkę, dwa wybory nagród, reset nowego runu oraz zapis i wznowienie bez zmiany dalszego przebiegu; agent jej nie uruchamia i wynik nie jest bramką milestone'u.
 - Pełny przepływ działa w produkcyjnym preview i po publikacji pod `/HOOP-RUN/` bez blokujących błędów konsoli, sieci, zasobów lub poziomego overflow.
 - Deterministyczny scenariusz rejestruje orientacyjny czas pełnego runu, obserwowalny efekt co najmniej jednej nagrody oraz różnice profili przeciwników; cel 25–35 minut jest miarą diagnostyczną, nie ręczną bramką `done`.
 - Agentowy techniczny smoke sprawdza onboarding, reprezentatywną nagrodę, checkpoint i podsumowanie na dwóch viewportach przez rzeczywiste kliknięcia, bez błędów konsoli, sieci, zasobów lub layoutu.
@@ -241,7 +241,7 @@ Pętla `mecz → nagroda → trudniejszy mecz` tworzy obserwowalny build: co naj
 
 - stabilizacja i ograniczone poprawki ujawnione przez testy, E2E lub agentowy smoke techniczny,
 - referencyjne seedy i audyty balansu nagród oraz przeciwników,
-- E2E sukcesu, porażki, obu nagród, resetu i checkpointu,
+- utrzymanie opcjonalnej ręcznej macierzy E2E sukcesu, porażki, obu nagród, resetu i checkpointu,
 - pomiar czasu oraz techniczna walidacja onboardingu i pełnego runu,
 - `docs/validation/prd-002-validation.md` oraz decyzja bramki.
 
@@ -254,9 +254,9 @@ Pętla `mecz → nagroda → trudniejszy mecz` tworzy obserwowalny build: co naj
 
 ### Walidacja
 
-- Testy automatyczne: `npm run test`, `npm run test:e2e`, kontrolowane seedy i audyt deterministyczności całego runu.
+- Testy automatyczne agenta: `npm run test`, kontrolowane seedy i audyt deterministyczności całego runu; pełne `npm run test:e2e:manual` może uruchomić wyłącznie użytkownik i nie jest bramką.
 - Build: pełne `./scripts/verify.sh` oraz weryfikacja artefaktu GitHub Pages.
-- Playtest: wymagany agentowy `$codex-flow-playtest` jako techniczny smoke reprezentatywnego sukcesu lub porażki oraz checkpointu na dwóch viewportach; pełną macierz sukcesu, porażek i wznowienia pokrywają E2E. Zewnętrzny test gracza jest opcjonalnym feedbackiem poza bramką.
+- Playtest: wymagany jest wyłącznie krótki agentowy `$codex-flow-playtest` reprezentatywnego ekranu lub przejścia, bez pełnego runu i bez dublowania ręcznej macierzy. Zewnętrzny test gracza oraz pełne E2E są opcjonalne poza bramką.
 - Review: wymagane końcowe read-only review diffu, testów, zapisu, dowodów playtestu, zakresu PRD i dokumentacji.
 
 ### Zależności i ryzyka

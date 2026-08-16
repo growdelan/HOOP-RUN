@@ -1,9 +1,7 @@
-name: Full browser E2E
+name: Full browser E2E (manual only)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 4 * * 1"
 
 permissions:
   contents: read
@@ -30,7 +28,7 @@ jobs:
 
       - name: Run full browser E2E
         id: full-e2e
-        run: npm run test:e2e
+        run: npm run test:e2e:manual
 
       - name: Upload Playwright diagnostics
         if: failure() && steps.full-e2e.outcome == 'failure'

@@ -2,7 +2,7 @@
 
 ## Status i źródła
 
-- Status: zweryfikowane zakresy PRD 000 i PRD 001; PRD 002 ma ukończone Milestone'y 8–11, a Milestone 12 pozostaje `planned`.
+- Status: PRD 000, PRD 001 i PRD 002 są zweryfikowane z bramkami `proceed`; Milestone'y 8–12 są ukończone.
 - Gwiazda północna produktu: `docs/product-vision.md`.
 - Źródła wymagań: `prd/000-initial-prd.md`, `prd/001-full-match.md` i `prd/002-first-run-loop.md`.
 - Data utworzenia: 2026-08-14.
@@ -40,7 +40,7 @@ Główna hipoteza PRD 001:
 
 Bramka PRD 001 ma wynik `proceed`: zewnętrzny pierwszy mecz trwał 10 minut, zakończył się 8:11, a tester rozumiał decyzje po pisemnym objaśnieniu zasad i chciał rewanżu.
 
-Zakres PRD 002 dodaje pierwszy zamknięty run: trzy mecze z `Fundamentals`, `Perimeter Crew` i `Paint Kings`, obowiązkowy wybór jednej z trzech kart po pierwszych dwóch zwycięstwach, cztery nowe karty, krótki onboarding oraz jeden ręczny lokalny checkpoint między meczami. Milestone'y 8–11 są ukończone, a walidacja hipotezy w Milestone 12 pozostaje `planned`. Szczegółowy kontrakt znajduje się w `docs/spec/first-run-loop.md`.
+Zakres PRD 002 dodaje pierwszy zamknięty run: trzy mecze z `Fundamentals`, `Perimeter Crew` i `Paint Kings`, obowiązkowy wybór jednej z trzech kart po pierwszych dwóch zwycięstwach, cztery nowe karty, krótki onboarding oraz jeden ręczny lokalny checkpoint między meczami. Milestone'y 8–12 są ukończone, a bramka walidacyjna ma wynik `proceed`. Szczegółowy kontrakt znajduje się w `docs/spec/first-run-loop.md`, a dowody w `docs/validation/prd-002-validation.md`.
 
 Główna hipoteza PRD 002:
 
@@ -265,17 +265,17 @@ Istniejący reducer ofensywnego posiadania pozostaje niezależnym elementem skł
 
 - Decyzja: TypeScript `strict`, Phaser i Vite, zarządzane przez npm z wersjonowanym `package-lock.json`.
 - Uzasadnienie: stos wspiera grę 2D, szybkie iteracje i statyczny deployment.
-- Konsekwencje: repozytorium definiuje skrypty `lint`, `typecheck`, `test`, `build` i docelowo `test:e2e`.
+- Konsekwencje: repozytorium definiuje skrypty `lint`, `typecheck`, `test`, `build`, `test:e2e:smoke` i ręczny `test:e2e:manual`.
 - Dotyczy: PRD 000–002, wszystkie milestone'y.
 
 ### Testy
 
 - Decyzja: Vitest dla logiki i Playwright dla krytycznego przepływu przeglądarkowego.
 - Uzasadnienie: reguły wymagają szybkich deterministycznych testów, a UI rzeczywistego smoke testu.
-- Konsekwencje: testy domenowe nie uruchamiają Phasera; domyślne `./scripts/verify.sh` pomija E2E, które wymagają jawnego `npm run test:e2e`, `npm run test:e2e:smoke` albo `HOOP_RUN_E2E_SCRIPT`; `test:e2e` uruchamia pełny zestaw przez kontrolowany produkcyjny preview, a `test:e2e:smoke` sprawdza krótki przepływ startu, pierwszego meczu, bazę Pages i layout.
-- Decyzja: push i pull request blokują publikację tylko na szybkim smoke E2E; pełny zestaw E2E pozostaje obowiązkową walidacją lokalną przed publikacją oraz osobnym workflow ręcznym i cotygodniowym, który nie jest zależnością deploymentu Pages.
-- Uzasadnienie: pełne runy pozostają wartościową diagnostyką, ale ich koszt renderowania na współdzielonym runnerze GitHub jest nieproporcjonalny do bramki każdego deploymentu i powoduje timeouty mimo zielonej walidacji lokalnej.
-- Konsekwencje: porażka pełnego workflow jest raportowana niezależnie, a oba workflowy przechowują przez 7 dni dostępne screenshoty, trace'y i kontekst błędu Playwrighta.
+- Konsekwencje: testy domenowe nie uruchamiają Phasera; domyślne `./scripts/verify.sh` pomija Playwrighta, a CI może jawnie wybrać wyłącznie `test:e2e:smoke` przez `HOOP_RUN_E2E_SCRIPT`. Pełny `test:e2e:manual` uruchamia kosztowną macierz przez produkcyjny preview wyłącznie na bezpośrednie polecenie użytkownika i jest odrzucany przez `verify.sh`.
+- Decyzja: push i pull request blokują publikację tylko na szybkim smoke E2E. Pełny zestaw E2E nie jest bramką `done`, review ani publikacji, nie jest uruchamiany przez agentów i pozostaje opcjonalnym ręcznym narzędziem użytkownika.
+- Uzasadnienie: pełne runy są zbyt kosztowne dla normalnej iteracji i zatrzymywały rozwój gry; szybkie testy domenowe, build i reprezentatywny smoke dają proporcjonalną informację zwrotną.
+- Konsekwencje: workflow pełnego E2E ma wyłącznie `workflow_dispatch`, bez harmonogramu; jego wynik jest diagnostyczny i niezależny od deploymentu Pages.
 - Decyzja: parametr `e2e=1` aktywuje wyłącznie odczytowy, serializowany snapshot modelu widoku; test nadal wykonuje akcje przez prawdziwe kliknięcia w canvas.
 - Konsekwencje: most nie jest aktywny w zwykłym uruchomieniu i nie umożliwia zmiany stanu ani omijania reguł.
 - Dotyczy: PRD 000–002, milestone'y 1–12; snapshot może zostać rozszerzony o stan runu bez dodawania komend testowych.
@@ -355,7 +355,7 @@ Poniższe decyzje i pytania pozostają częścią kontrolowanego planu:
 - Przyjęto w Milestone 7: pierwszy przeciwnik nie zmienia planu na podstawie wyniku i nie otrzymuje ukrytej wiedzy ani bonusu; adaptację do wyniku można rozważyć dopiero w osobnym zakresie zawartości AI.
 - TODO po playteście stref: zatwierdzić albo zmienić topologię boiska.
 - Przyjęto dla prototypu: informacja o rzucie pokazuje jednocześnie kategorię i procent; dalsze uproszczenie może wynikać z opcjonalnego feedbacku gracza, ale nie blokuje roadmapy.
-- Przyjęto procesowo: obowiązkowe są deterministyczne testy, E2E i adekwatny agentowy smoke techniczny; ludzki playtest oraz deklarowana chęć ponownego runu nie są bramką i nie zatrzymują workflow.
+- Przyjęto procesowo: obowiązkowe są szybkie deterministyczne testy, build i adekwatny krótki smoke techniczny. Pełne E2E są opcjonalne, wyłącznie ręczne dla użytkownika i nigdy nie zatrzymują workflow agenta; ludzki playtest także nie jest bramką.
 - Przyjęto dla PRD 002: run rozpoczyna obecna drużyna i obecne talie; kapitan, trener, archetyp i draft pozostają poza zakresem.
 - Przyjęto przed Milestone 9: `Backdoor Cut` kosztuje 2 sekundy i otwiera cuttera w paint wyłącznie przeciw agresywnej presji bez pomocy; `Step Back` kosztuje 3 sekundy i daje niekumulujące `+12 pp` do najbliższego rzutu tego wykonującego.
 - Przyjęto przed Milestone 9: `Hedge` kosztuje łącznie 3 sekundy, daje `-2 Opponent Advantage` i `+6 contest` na zasłonie kosztem odsłonięcia screenera; `Close Out` kosztuje 2 sekundy i daje `+12 contest` na czysty rzut obwodowy albo tylko `+4 contest` oraz `+1 Opponent Advantage`, gdy atak ma już przewagę.

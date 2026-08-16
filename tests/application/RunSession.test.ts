@@ -141,6 +141,33 @@ describe("RunSession", () => {
     });
   });
 
+  it("checkpoint zachowuje cały dalszy przebieg dla tych samych decyzji", () => {
+    const repository = new MemoryCheckpointRepository();
+    const uninterrupted = new RunSession(2, 14, () => 0);
+    const beforeResume = new RunSession(2, 14, () => 0, repository);
+    uninterrupted.dispatch({ type: "startRun" });
+    beforeResume.dispatch({ type: "startRun" });
+    playUntilScreenChanges(uninterrupted, "prepared", "contextual");
+    playUntilScreenChanges(beforeResume, "prepared", "contextual");
+
+    const reward = uninterrupted.getViewModel().rewardOffer?.find((entry) => entry.role === "offense");
+    expect(beforeResume.getViewModel().rewardOffer).toEqual(uninterrupted.getViewModel().rewardOffer);
+    if (reward === undefined) throw new Error("Brak ofensywnej nagrody do checkpointu.");
+    uninterrupted.dispatch({ type: "chooseReward", offerIndex: reward.index });
+    beforeResume.dispatch({ type: "chooseReward", offerIndex: reward.index });
+    beforeResume.dispatch({ type: "saveAndExit" });
+
+    const resumed = new RunSession(999, 9, () => 100_000, repository);
+    resumed.dispatch({ type: "continueRun" });
+    uninterrupted.dispatch({ type: "startNextMatch" });
+    resumed.dispatch({ type: "startNextMatch" });
+    expect(resumed.state).toEqual(uninterrupted.state);
+
+    expect(playStrategicRun(uninterrupted)).toBe("success");
+    expect(playStrategicRun(resumed)).toBe("success");
+    expect(resumed.state).toEqual(uninterrupted.state);
+  });
+
   it("zapisuje intermission, wznawia identyczny stan i nie dolicza przerwy poza sesją", () => {
     let now = 1_000;
     const repository = new MemoryCheckpointRepository();
@@ -447,7 +474,9 @@ function deeplyNestedCheckpoint(depth: number): string {
 }
 
 function playStrategicRun(session: RunSession): "success" | "failure" {
-  let offenseRewardId: string | undefined;
+  let offenseRewardId = session.state?.selectedRewards.find(
+    (reward) => reward.role === "offense",
+  )?.cardId;
   const usedPossessions = new Set<string>();
   for (let step = 0; step < 500; step += 1) {
     const run = session.getViewModel();
